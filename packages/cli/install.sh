@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Helix Agent CLI installer — no npm required.
-# Usage: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix-agent-cli/main/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
 set -e
 
-REPO="gabriel-belmonte/helix-agent-cli"
+REPO="gabriel-belmonte/helix"
 BIN_NAME="helix"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 VERSION="${HELIX_VERSION:-latest}"

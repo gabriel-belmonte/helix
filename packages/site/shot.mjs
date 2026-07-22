@@ -1,6 +1,6 @@
 import { chromium } from "playwright-core";
 
-const URL = "http://localhost:8099/helix-agent/index.html";
+const URL = "http://localhost:8099/helix/index.html";
 // Use the system Chromium (snap) instead of downloading a browser.
 const EXE = process.env.CHROMIUM_EXE || "/snap/bin/chromium";
 

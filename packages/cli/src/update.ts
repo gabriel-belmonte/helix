@@ -7,7 +7,7 @@ import { homedir } from "node:os";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
 
-const REPO = "gabriel-belmonte/helix-agent-cli";
+const REPO = "gabriel-belmonte/helix";
 
 function detectPlatform(): { os: string; arch: string; asset: string } {
   const os = process.platform === "darwin" ? "darwin" : process.platform === "linux" ? "linux" : null;

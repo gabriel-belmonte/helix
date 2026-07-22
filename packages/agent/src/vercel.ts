@@ -15,8 +15,7 @@
 
 import type { LLMProvider, ChatMessage } from "./index.js";
 
-// Vercel AI SDK's LanguageModel type (we don't import it directly to keep
-// this as a peer-dependency adapter — users install `ai` themselves).
+// Vercel AI SDK types (we use any here since ai is a peer dependency)
 type LanguageModel = any;
 
 export type VercelProviderOpts = {
@@ -26,7 +25,7 @@ export type VercelProviderOpts = {
   maxRetries?: number;
 };
 
-// Convert helix messages → Vercel AI SDK format (cast to avoid strict type issues)
+// Convert helix messages → Vercel AI SDK format
 function toVercelMessages(messages: ChatMessage[]): any[] {
   return messages
     .filter((m) => m.role !== "system")
@@ -50,16 +49,13 @@ export function vercelProvider(opts: VercelProviderOpts): LLMProvider {
 
   return {
     async complete(messages: ChatMessage[]): Promise<string> {
-      // Dynamic import so `ai` is optional at the engine level.
-      // Users who use vercelProvider MUST have `ai` installed.
-      const { generateText } = await import("ai");
-
+      const ai = await import("ai");
       const systemMsg = messages.find((m) => m.role === "system");
 
-      const result = await generateText({
+      const result = await ai.generateText({
         model,
         system: systemMsg?.content,
-        messages: toVercelMessages(messages) as any,
+        messages: toVercelMessages(messages),
         maxRetries,
       });
 
@@ -99,8 +95,7 @@ export function vercelToolProvider(
 
   return {
     async complete(messages: ChatMessage[]): Promise<string> {
-      const { generateText, isStepCount } = await import("ai");
-
+      const ai = await import("ai");
       const systemMsg = messages.find((m) => m.role === "system");
 
       // Convert helix tool format → Vercel tool format
@@ -112,12 +107,11 @@ export function vercelToolProvider(
         };
       }
 
-      const result = await generateText({
+      const result = await ai.generateText({
         model,
         system: systemMsg?.content,
-        messages: toVercelMessages(messages) as any,
+        messages: toVercelMessages(messages),
         tools: vercelTools,
-        stopWhen: isStepCount(1), // Let helix-agent handle the loop
         maxRetries,
       });
 

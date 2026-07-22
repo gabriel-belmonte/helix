@@ -5,6 +5,16 @@
   "type": "module",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    },
+    "./vercel": {
+      "types": "./dist/src/vercel.d.ts",
+      "import": "./dist/src/vercel.js"
+    }
+  },
   "files": ["dist"],
   "scripts": {
     "build": "tsc",
@@ -13,12 +23,23 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["ai", "agents", "llm", "typescript", "orchestration", "langchain-alternative"],
+  "keywords": ["ai", "agents", "llm", "typescript", "orchestration", "langchain-alternative", "vercel"],
   "author": "gabriel-belmonte",
   "license": "MIT",
+  "peerDependencies": {
+    "ai": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "typescript": "^5.4.0",
     "tsx": "^4.7.0",
-    "@types/node": "^20.11.0"
+    "@types/node": "^20.11.0",
+    "ai": "^4.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@ai-sdk/anthropic": "^1.0.0"
   }
 }

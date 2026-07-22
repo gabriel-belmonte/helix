@@ -1,13 +1,12 @@
 // Load an LLM provider from environment variables OR ~/.helix/config.json.
-// Supports OpenCode Zen (Big Pickle, free), HuggingFace (free router),
-// OpenRouter (free tier), and OpenAI.
+// Uses Vercel AI SDK under the hood — supports OpenAI, Anthropic, Google, etc.
 
-import { openAIProvider, scriptedLLM, type LLMProvider } from "helix-agent";
+import { scriptedLLM, type LLMProvider } from "helix-agent";
+import { vercelProvider } from "helix-agent/vercel";
 import { loadConfig } from "./config.js";
 
 export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   if (opts.scripted) {
-    // A tiny demo brain: it lists the dir, then answers.
     return scriptedLLM((t) => {
       if (t === 0) return "@@TOOL@@ list_dir {}";
       return "Here are the files in the current directory (see the tool result above).";
@@ -16,43 +15,90 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
 
   const cfg = loadConfig();
 
-  // 1) OpenCode Zen — gives free access to "Big Pickle" and other curated models.
-  const zenKey = process.env.OPENCODE_ZEN_API_KEY ?? process.env.OPENCODE_ZEN_KEY;
-  if (zenKey) {
-    return openAIProvider({
-      apiKey: zenKey,
-      baseUrl: process.env.OPENCODE_ZEN_BASE_URL ?? cfg.zenBaseUrl ?? "https://opencode.ai/zen/v1",
-      model: process.env.HELIX_MODEL ?? cfg.model ?? "big-pickle",
+  // 1) OpenAI
+  const openaiKey = process.env.OPENAI_API_KEY;
+  if (openaiKey) {
+    return vercelProvider({
+      model: createOpenAIModel(openaiKey, cfg.model ?? "gpt-4o-mini"),
     });
   }
 
-  // 2) HuggingFace Inference Providers (free router).
+  // 2) Anthropic
+  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  if (anthropicKey) {
+    return vercelProvider({
+      model: createAnthropicModel(anthropicKey, cfg.model ?? "claude-sonnet-4-20250514"),
+    });
+  }
+
+  // 3) OpenRouter (via OpenAI SDK with custom base URL)
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  if (openrouterKey) {
+    return vercelProvider({
+      model: createOpenAIModel(
+        openrouterKey,
+        cfg.model ?? "cohere/north-mini-code:free",
+        "https://openrouter.ai/api/v1"
+      ),
+    });
+  }
+
+  // 4) HuggingFace Inference Providers (via OpenAI SDK)
   const hfToken = process.env.HF_TOKEN;
   if (hfToken) {
-    return openAIProvider({
-      apiKey: hfToken,
-      baseUrl: process.env.HF_BASE_URL ?? cfg.hfBaseUrl ?? "https://router.huggingface.co/v1",
-      model: process.env.HELIX_MODEL ?? cfg.model ?? "Qwen/Qwen3-Coder-Next",
+    return vercelProvider({
+      model: createOpenAIModel(
+        hfToken,
+        cfg.model ?? "Qwen/Qwen3-Coder-Next",
+        "https://router.huggingface.co/v1"
+      ),
     });
   }
 
-  // 3) OpenRouter / OpenAI
-  const apiKey =
-    process.env.OPENROUTER_API_KEY ?? process.env.OPENAI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "No LLM provider configured. Run `helix config` to set a provider+key, " +
-        "or set OPENCODE_ZEN_API_KEY / HF_TOKEN / OPENROUTER_API_KEY / OPENAI_API_KEY."
-    );
+  // 5) OpenCode Zen (via OpenAI SDK)
+  const zenKey = process.env.OPENCODE_ZEN_API_KEY ?? process.env.OPENCODE_ZEN_KEY;
+  if (zenKey) {
+    return vercelProvider({
+      model: createOpenAIModel(
+        zenKey,
+        cfg.model ?? "big-pickle",
+        process.env.OPENCODE_ZEN_BASE_URL ?? cfg.zenBaseUrl ?? "https://opencode.ai/zen/v1"
+      ),
+    });
   }
 
-  const isOpenRouter = !!process.env.OPENROUTER_API_KEY;
-  return openAIProvider({
-    apiKey,
-    baseUrl: isOpenRouter
-      ? "https://openrouter.ai/api/v1"
-      : "https://api.openai.com/v1",
-    model: process.env.HELIX_MODEL ?? cfg.model ?? (isOpenRouter ? "cohere/north-mini-code:free" : "gpt-4o-mini"),
-  });
+  // 6) Generic OpenAI-compatible endpoint
+  const customKey = process.env.LLM_API_KEY;
+  const customUrl = process.env.LLM_BASE_URL;
+  if (customKey && customUrl) {
+    return vercelProvider({
+      model: createOpenAIModel(customKey, cfg.model ?? "default", customUrl),
+    });
+  }
+
+  throw new Error(
+    "No LLM provider configured. Set one of:\n" +
+    "  OPENAI_API_KEY      → OpenAI\n" +
+    "  ANTHROPIC_API_KEY   → Anthropic\n" +
+    "  OPENROUTER_API_KEY  → OpenRouter\n" +
+    "  HF_TOKEN            → HuggingFace\n" +
+    "  OPENCODE_ZEN_API_KEY → OpenCode Zen\n" +
+    "  LLM_API_KEY + LLM_BASE_URL → Custom endpoint\n\n" +
+    "Or run `helix config set provider <name>` + `helix config set model <slug>`."
+  );
+}
+
+// Lazy import helpers — only load the provider SDK when needed
+async function createOpenAIModel(apiKey: string, model: string, baseUrl?: string) {
+  const { createOpenAI } = await import("@ai-sdk/openai");
+  const config: any = { apiKey };
+  if (baseUrl) config.baseURL = baseUrl;
+  const provider = createOpenAI(config);
+  return provider(model);
+}
+
+async function createAnthropicModel(apiKey: string, model: string) {
+  const { createAnthropic } = await import("@ai-sdk/anthropic");
+  const provider = createAnthropic({ apiKey });
+  return provider(model);
 }

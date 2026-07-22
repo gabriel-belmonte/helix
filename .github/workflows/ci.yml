@@ -15,5 +15,6 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - run: npm install --ignore-scripts && npm rebuild  # fix rollup optional dep bug
       - run: npm run build
       - run: npm run test

@@ -25,10 +25,44 @@ test("unknown tool returns an error result, no crash", async () => {
 });
 
 test("maxSteps prevents infinite tool loops", async () => {
-  // LLM always asks for the same tool -> should stop after maxSteps.
   const llm = scriptedLLM(() => `${TOOL_MARKER} ping {}`);
   const ping = defineTool("ping", "ping", async () => "pong");
   const agent = new Agent({ name: "P", system: "p", llm, tools: [ping], maxSteps: 3 });
   const out = await agent.run("go");
-  assert.ok(out.includes("pong")); // last tool result still returned as final
+  assert.ok(out.includes("pong"));
+});
+
+test("multi-tool-call: two tools in one turn", async () => {
+  // LLM emits two tool calls in a single reply
+  const llm = scriptedLLM((t) => {
+    if (t === 0) {
+      return `${TOOL_MARKER} add {"a":1,"b":2}\n${TOOL_MARKER} add {"a":3,"b":4}`;
+    }
+    return "Results: 3 and 7.";
+  });
+
+  const add = defineTool("add", "Adds two numbers", async (i: { a: number; b: number }) => i.a + i.b);
+  const agent = new Agent({ name: "Calc", system: "calc", llm, tools: [add] });
+  const out = await agent.run("add pairs");
+
+  assert.ok(out.includes("3"));
+  assert.ok(out.includes("7"));
+});
+
+test("onToolCall callback is invoked", async () => {
+  const calls: string[] = [];
+  const llm = scriptedLLM((t) => {
+    if (t === 0) return `${TOOL_MARKER} ping {}`;
+    return "done";
+  });
+  const ping = defineTool("ping", "ping", async () => "pong");
+  const agent = new Agent({
+    name: "P",
+    system: "p",
+    llm,
+    tools: [ping],
+    onToolCall: (name) => calls.push(name),
+  });
+  await agent.run("go");
+  assert.deepEqual(calls, ["ping"]);
 });

@@ -3,11 +3,10 @@
 
 import { defineTool } from "helix-agent";
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, relative } from "node:path";
 import { execSync } from "node:child_process";
 
 function safePath(p: string): string {
-  // Resolve relative to cwd and keep it absolute-ish for clarity.
   return resolve(process.cwd(), p);
 }
 
@@ -71,4 +70,50 @@ export const runBash = defineTool(
   }
 );
 
-export const tools = [readFile, writeFile, listDir, runBash];
+export const searchFiles = defineTool(
+  "search_files",
+  `Search for files by name pattern or grep content.
+Input: { pattern: string, mode?: "files" | "content", path?: string, file_glob?: string }
+- mode="files" (default): find files matching a glob pattern (e.g. "*.ts", "src/**")
+- mode="content": grep for regex pattern inside files
+- file_glob: filter to specific file types (e.g. "*.ts") in content mode
+Returns matching file paths and/or content lines.`,
+  async (input: {
+    pattern: string;
+    mode?: "files" | "content";
+    path?: string;
+    file_glob?: string;
+  }) => {
+    const dir = safePath(input.path ?? ".");
+    const mode = input.mode ?? "files";
+
+    if (mode === "files") {
+      // Use find via shell for glob matching
+      try {
+        const cmd = `find ${JSON.stringify(dir)} -name ${JSON.stringify(input.pattern)} -type f 2>/dev/null | head -50`;
+        const out = execSync(cmd, { encoding: "utf8", timeout: 10_000 });
+        const files = out.trim().split("\n").filter(Boolean).map((f) => relative(dir, f));
+        return { pattern: input.pattern, matches: files, count: files.length };
+      } catch {
+        return { pattern: input.pattern, matches: [], count: 0 };
+      }
+    }
+
+    // content mode: grep
+    try {
+      const globArg = input.file_glob ? `--include=${JSON.stringify(input.file_glob)}` : "";
+      const cmd = `grep -rn ${globArg} ${JSON.stringify(input.pattern)} ${JSON.stringify(dir)} 2>/dev/null | head -50`;
+      const out = execSync(cmd, { encoding: "utf8", timeout: 10_000 });
+      const lines = out.trim().split("\n").filter(Boolean).map((l) => {
+        // Strip the dir prefix for readability
+        const rel = l.startsWith(dir) ? l.slice(dir.length + 1) : l;
+        return rel;
+      });
+      return { pattern: input.pattern, matches: lines, count: lines.length };
+    } catch {
+      return { pattern: input.pattern, matches: [], count: 0 };
+    }
+  }
+);
+
+export const tools = [readFile, writeFile, listDir, runBash, searchFiles];

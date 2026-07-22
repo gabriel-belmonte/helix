@@ -1,5 +1,12 @@
-// helix-agent — minimal agent orchestration SDK (usable core)
+// helix-agent — minimal agent orchestration SDK
 // Lightweight, transparent alternative to heavy agent frameworks.
+//
+// DESIGN:
+//   The LLM emits tool calls via the @@TOOL@@ marker.
+//   Providers (openAIProvider, etc.) convert native function_calls into this
+//   marker so the core Agent stays provider-agnostic.
+//   Text-based format parsers (<tool_call>, JSON blocks, etc.) are NOT included —
+//   that's the provider's job, not the engine's.
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
@@ -14,9 +21,9 @@ export type Tool = {
 
 export type LLMProvider = {
   // Receives the full message history; returns the model's text reply.
-  // If the model wants to call a tool, it should emit the marker:
+  // If the model wants to call tools, it should emit markers:
   //   @@TOOL@@ <name> <json-or-empty>
-  // (openAIProvider converts native function_calls into this marker for you.)
+  // (one per tool call; openAIProvider converts native function_calls for you.)
   complete: (messages: ChatMessage[]) => Promise<string>;
 };
 
@@ -27,6 +34,10 @@ export type AgentOptions = {
   tools?: Tool[];
   // Max tool-call iterations per run() to avoid infinite loops. Default 5.
   maxSteps?: number;
+  // Called for each tool invocation. Useful for --verbose logging.
+  onToolCall?: (name: string, input: unknown) => void;
+  // Seed conversation history (e.g. from persistent REPL history).
+  initialHistory?: ChatMessage[];
 };
 
 // Marker the model uses to request a tool invocation.
@@ -48,6 +59,7 @@ export class Agent {
   private llm: LLMProvider;
   private tools: Map<string, Tool>;
   private maxSteps: number;
+  private onToolCall?: (name: string, input: unknown) => void;
   private history: ChatMessage[] = [];
 
   constructor(opts: AgentOptions) {
@@ -56,132 +68,95 @@ export class Agent {
     this.llm = opts.llm;
     this.tools = new Map((opts.tools ?? []).map((t) => [t.name, t]));
     this.maxSteps = opts.maxSteps ?? 5;
+    this.onToolCall = opts.onToolCall;
+    if (opts.initialHistory) {
+      this.history = [...opts.initialHistory];
+    }
   }
 
-  private parseToolCall(text: string): { name: string; input: unknown } | null {
-    // Format 1: @@TOOL@@ <name> <json>
-    const markerIdx = text.lastIndexOf(TOOL_MARKER);
-    if (markerIdx !== -1) {
-      const rest = text.slice(markerIdx + TOOL_MARKER.length).trim();
+  /**
+   * Parse ALL @@TOOL@@ markers from a reply.
+   * Returns an array because modern models can request multiple tools per turn.
+   */
+  private parseToolCalls(text: string): { name: string; input: unknown }[] {
+    const calls: { name: string; input: unknown }[] = [];
+    const marker = TOOL_MARKER;
+    let searchFrom = 0;
+
+    while (true) {
+      const idx = text.indexOf(marker, searchFrom);
+      if (idx === -1) break;
+
+      const rest = text.slice(idx + marker.length).trim();
       const space = rest.indexOf(" ");
       const name = (space === -1 ? rest : rest.slice(0, space)).trim();
       const raw = space === -1 ? "" : rest.slice(space + 1).trim();
-      return { name, input: parseInput(raw) };
-    }
 
-    // Format 2: <tool_call>name<arg_key>k</arg_key><arg_value>v</arg_value>...</tool_call>
-    const tc = text.match(/<tool_call>\s*([\w-]+)\s*([\s\S]*?)<\/tool_call>/);
-    if (tc) {
-      const name = tc[1].trim();
-      const argBlock = tc[2];
-      const input: Record<string, string> = {};
-      const re = /<arg_key>(.*?)<\/arg_key>\s*<arg_value>([\s\S]*?)<\/arg_value>/g;
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(argBlock)) !== null) input[m[1]] = m[2];
-      return { name, input };
-    }
-
-    // Format 3: ```json tool call style { "name": "...", "input": {...} }
-    const jsonBlock = text.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-    if (jsonBlock) {
-      try {
-        const obj = JSON.parse(jsonBlock[1]);
-        if (obj && obj.name && obj.input !== undefined) {
-          return { name: String(obj.name), input: obj.input };
-        }
-      } catch { /* ignore */ }
-    }
-
-    // Format 4: <name>\n```json { ... } (model names tool then JSON)
-    const named = text.match(/([\w-]+)\s*```json\s*(\{[\s\S]*?\})\s*```/);
-    if (named) {
-      try {
-        return { name: named[1].trim(), input: JSON.parse(named[2]) };
-      } catch { /* ignore */ }
-    }
-
-    // Format 5: Anthropic-style <tool_call><function=name><parameter=k>v</parameter>
-    const tc5 = text.match(/<tool_call>\s*<function=([\w-]+)>\s*([\s\S]*?)<\/function>\s*<\/tool_call>/);
-    if (tc5) {
-      const name = tc5[1].trim();
-      const argBlock = tc5[2];
-      const input: Record<string, string> = {};
-      const re5 = /<parameter=([\w-]+)>([\s\S]*?)<\/parameter>/g;
-      let m5: RegExpExecArray | null;
-      while ((m5 = re5.exec(argBlock)) !== null) input[m5[1]] = m5[2];
-      return { name, input };
-    }
-
-    // Format 6: <tool_invocation name="x" arguments={...} />
-    const tc6 = text.match(/<tool_invocation\s+name="([\w-]+)"\s+arguments=(\{[\s\S]*?\})\s*\/>/);
-    if (tc6) {
-      try {
-        return { name: tc6[1].trim(), input: JSON.parse(tc6[2]) };
-      } catch { /* ignore */ }
-    }
-
-    // Format 7 (universal fallback): any known tool name mentioned, with
-    // path/content extracted loosely from the text (handles erratic models).
-    const loose = text.match(/\b(write_file|read_file|list_dir|run_bash)\b/);
-    if (loose) {
-      const name = loose[1];
-      const input: Record<string, string> = {};
-      const pathM = text.match(/("path"|path)\s*[:=]\s*"?([^"\n,}>]+)"?/);
-      if (pathM) input.path = pathM[2].trim().replace(/^["']|["']$/g, "");
-      const contentM = text.match(/("content"|content)\s*[:=]\s*"?([^"\n,}>]+)"?/);
-      if (contentM) input.content = contentM[2].trim().replace(/^["']|["']$/g, "");
-      const cmdM = text.match(/("command"|command)\s*[:=]\s*"?([^"\n,}>]+)"?/);
-      if (cmdM) input.command = cmdM[2].trim().replace(/^["']|["']$/g, "");
-      if (Object.keys(input).length || name === "list_dir") {
-        return { name, input };
+      if (name) {
+        calls.push({ name, input: parseInput(raw) });
       }
+
+      searchFrom = idx + marker.length + rest.length;
     }
 
-    return null;
+    return calls;
+  }
+
+  /** Execute a single tool call and return the result string. */
+  private async execTool(call: { name: string; input: unknown }): Promise<string> {
+    this.onToolCall?.(call.name, call.input);
+
+    const tool = this.tools.get(call.name);
+    if (!tool) {
+      return `Error: unknown tool "${call.name}"`;
+    }
+    try {
+      const out = await tool.run(call.input);
+      return JSON.stringify(out);
+    } catch (e) {
+      return `Error: ${(e as Error).message}`;
+    }
   }
 
   /** Run one user turn through the agent (multi-turn + tool loop). */
   async run(userMessage: string): Promise<string> {
     this.history.push({ role: "user", content: userMessage });
 
-    const messages: ChatMessage[] = [
+    let reply = await this.llm.complete([
       { role: "system", content: this.system },
       ...this.history,
-    ];
-
-    let reply = await this.llm.complete(messages);
+    ]);
 
     for (let step = 0; step < this.maxSteps; step++) {
-      const call = this.parseToolCall(reply);
-      if (!call) break;
+      const calls = this.parseToolCalls(reply);
+      if (calls.length === 0) break;
 
-      const tool = this.tools.get(call.name);
-      let result: string;
-      if (!tool) {
-        result = `Error: unknown tool "${call.name}"`;
-      } else {
-        try {
-          const out = await tool.run(call.input);
-          result = JSON.stringify(out);
-        } catch (e) {
-          result = `Error: ${(e as Error).message}`;
-        }
+      // Execute all tool calls from this turn
+      const results: string[] = [];
+      for (const call of calls) {
+        results.push(await this.execTool(call));
       }
 
-      const toolMsg = `Result of ${call.name}: ${result}`;
+      // Build tool result messages
+      const toolMsgs = results.map(
+        (r, i) => `Result of ${calls[i].name}: ${r}`
+      );
 
-      // Last allowed step: return the tool result directly so an infinite
-      // tool-loop still yields something useful instead of a raw marker.
+      // On the last allowed step, return the tool results directly
       if (step === this.maxSteps - 1) {
         this.history.push({ role: "assistant", content: reply });
-        this.history.push({ role: "tool", content: toolMsg });
-        this.history.push({ role: "assistant", content: toolMsg });
-        return toolMsg;
+        for (const msg of toolMsgs) {
+          this.history.push({ role: "tool", content: msg });
+        }
+        this.history.push({ role: "assistant", content: toolMsgs.join("\n") });
+        return toolMsgs.join("\n");
       }
 
-      // Feed the tool result back into the conversation and continue.
+      // Feed tool results back and continue the loop
       this.history.push({ role: "assistant", content: reply });
-      this.history.push({ role: "tool", content: toolMsg });
+      for (const msg of toolMsgs) {
+        this.history.push({ role: "tool", content: msg });
+      }
 
       reply = await this.llm.complete([
         { role: "system", content: this.system },
@@ -209,4 +184,3 @@ export function defineTool<TIn, TOut>(
 
 // Providers live in providers.ts but are part of the public SDK surface.
 export { scriptedLLM, openAIProvider } from "./providers.js";
-

@@ -5,6 +5,8 @@ import { buildAgent } from "./src/agent.js";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
+import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
+import type { ChatMessage } from "helix-agent";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 
@@ -12,11 +14,13 @@ interface CliOpts {
   prompt?: string;
   scripted?: boolean;
   cwd?: string;
+  verbose?: boolean;
   config?: boolean;
   configKey?: string;
   configVal?: string;
   configGet?: boolean;
   update?: boolean;
+  historyClear?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -25,10 +29,10 @@ function parseArgs(argv: string[]): CliOpts {
     const a = argv[i];
     if (a === "-p" || a === "--prompt") opts.prompt = argv[++i];
     else if (a === "--scripted") opts.scripted = true;
+    else if (a === "-v" || a === "--verbose") opts.verbose = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
     else if (a === "config") {
       opts.config = true;
-      // next tokens until a flag: set <key> <val> | get [key]
       const sub = argv[++i];
       if (sub === "set") {
         opts.configKey = argv[++i];
@@ -45,6 +49,10 @@ function parseArgs(argv: string[]): CliOpts {
       process.exit(0);
     }
     else if (a === "update") opts.update = true;
+    else if (a === "history" && argv[i + 1] === "clear") {
+      opts.historyClear = true;
+      i++; // skip "clear"
+    }
   }
   return opts;
 }
@@ -55,9 +63,11 @@ function printHelp() {
 USAGE
   helix -p "prompt"          run a single prompt and exit
   helix                        interactive REPL
+  helix -v                   verbose: show tool calls
   helix config set <k> <v>  save a config value
   helix config get [k]         show config (or one key)
   helix config list            show full config path + values
+  helix history clear        clear conversation history
   helix update               update to latest release
 
 PROVIDERS (set via config or env)
@@ -76,6 +86,7 @@ EXAMPLES
   helix config set provider zen
   helix config set model big-pickle
   helix -p "refactor utils.ts to async/await"
+  helix -v -p "list files in src/"
 
 NOTE: API keys are still read from ENV vars (never stored in config).
       config holds only provider + model choice.`);
@@ -99,6 +110,13 @@ async function main() {
   // Update subcommand
   if (opts.update) {
     await runUpdate();
+    return;
+  }
+
+  // History clear subcommand
+  if (opts.historyClear) {
+    clearHistory();
+    console.log("✓ history cleared");
     return;
   }
 
@@ -130,22 +148,45 @@ async function main() {
     process.exit(1);
   }
 
-  const agent = buildAgent(llm);
+  // Verbose callback: log each tool call in real time
+  const onToolCall = opts.verbose
+    ? (name: string, input: unknown) => {
+        const preview = typeof input === "object" ? JSON.stringify(input) : String(input);
+        console.log(`  🔧 ${name}(${preview.length > 120 ? preview.slice(0, 120) + "..." : preview})`);
+      }
+    : undefined;
+
+  // Load persistent history and seed the agent
+  const savedHistory = loadHistory(20);
+  const initialHistory: ChatMessage[] = savedHistory.map((e) => ({
+    role: e.role,
+    content: e.content,
+  }));
+
+  const agent = buildAgent(llm, { onToolCall, initialHistory });
 
   if (opts.prompt) {
+    if (opts.verbose) console.log(`→ prompt: ${opts.prompt}`);
     const reply = await agent.run(opts.prompt);
+    // Persist this turn
+    appendHistory("user", opts.prompt);
+    appendHistory("assistant", reply);
     console.log(`\nHelix: ${reply}`);
     return;
   }
 
   // Interactive REPL
-  console.log("Helix coding agent (helix-agent). Type 'exit' to quit.\n");
+  const turnCount = initialHistory.length > 0 ? `(${savedHistory.length} messages in history) ` : "";
+  console.log(`Helix coding agent (helix-agent). ${turnCount}Type 'exit' to quit.\n`);
   const rl = readline.createInterface({ input, output });
   while (true) {
     const userInput = await rl.question("you> ");
     if (userInput.trim().toLowerCase() === "exit") break;
     if (!userInput.trim()) continue;
     const reply = await agent.run(userInput);
+    // Persist this turn
+    appendHistory("user", userInput);
+    appendHistory("assistant", reply);
     console.log(`Helix: ${reply}\n`);
   }
   rl.close();

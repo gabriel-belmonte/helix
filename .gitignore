@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+.turbo/
+
+# site
+packages/site/.astro/
+packages/site/dist/
+
+# misc
+*.log
+.DS_Store
+
+# env / secrets
+.env
+.env.*
+!.env.example

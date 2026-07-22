@@ -1,0 +1,24 @@
+{
+  "name": "helix-agent",
+  "version": "0.1.0",
+  "description": "Minimal TypeScript SDK to orchestrate AI agents and tools — a lightweight, transparent alternative to LangChain.",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx --test test/*.test.ts",
+    "demo": "tsx examples/hello-agent.ts",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["ai", "agents", "llm", "typescript", "orchestration", "langchain-alternative"],
+  "author": "gabriel-belmonte",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
+}

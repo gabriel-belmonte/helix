@@ -1,0 +1,23 @@
+{
+  "name": "helix",
+  "private": true,
+  "workspaces": [
+    "packages/agent",
+    "packages/cli",
+    "packages/eval",
+    "packages/site"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "build:agent": "turbo run build --filter=helix-agent",
+    "build:cli": "turbo run build --filter=helix-agent-cli",
+    "build:eval": "turbo run build --filter=helix-agent-eval",
+    "build:site": "turbo run build --filter=helix-site",
+    "test": "turbo run test",
+    "clean": "turbo run clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "packageManager": "npm@10.0.0"
+}

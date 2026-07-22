@@ -1,0 +1,29 @@
+{
+  "name": "helix-agent-cli",
+  "version": "0.1.0",
+  "description": "A minimal, transparent coding agent CLI built on helix-agent. Native bun binary, curl install, helix config command.",
+  "type": "module",
+  "bin": {
+    "helix": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx cli.ts",
+    "test": "tsx --test",
+    "demo": "tsx cli.ts -p \"List the files in the current directory\" --scripted",
+    "clean": "rm -rf dist"
+  },
+  "keywords": ["ai", "agents", "cli", "coding-agent", "llm", "terminal"],
+  "author": "gabriel-belmonte",
+  "license": "MIT",
+  "dependencies": {
+    "helix-agent": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}

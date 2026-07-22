@@ -1,0 +1,291 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span class="k">from</span> <span class="s">"helix-agent"</span>;
+
+<span class="k">const</span> weather = <span class="k">defineTool</span>(
+  <span class="s">"get_weather"</span>,
+  <span class="s">"Returns the weather for a city"</span>,
+  <span class="k">async</span> (input: { city: <span class="k">string</span> }) =&gt;
+    ({ city: input.city, tempC: <span class="n">21</span> })
+);
+
+<span class="k">const</span> agent = <span class="k">new</span> <span class="k">Agent</span>({
+  name: <span class="s">"Helper"</span>,
+  system: <span class="s">"You are a helpful assistant."</span>,
+  llm: yourLLMProvider,  <span class="c">// any { complete(messages) }</span>
+  tools: [weather],
+});
+
+<span class="k">const</span> reply = <span class="k">await</span> agent.run(<span class="s">"Weather in Madrid?"</span>);
+<span class="c">// → the agent calls get_weather, then answers with 21°C</span>`;
+---
+
+<Layout
+  title="helix — a coding agent you can actually read"
+  description="Minimal, transparent TypeScript SDK + CLI for AI agents. ~300 LOC engine, no npm needed. Bring your own LLM."
+>
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="wrap nav-inner">
+      <div class="brand"><span class="dot"></span> helix</div>
+      <div class="nav-links">
+        <a href="#why">why</a>
+        <a href="#ecosystem">ecosystem</a>
+        <a href="#code">code</a>
+        <a href="#features">features</a>
+        <a href="#sponsor">sponsor</a>
+        <a href="https://github.com/gabriel-belmonte/helix-agent">github ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">// typescript · ~300 LOC · mit</span>
+        <h1>
+          A coding agent<br />you can <em>actually read</em>.
+        </h1>
+        <p class="lead">
+          The engine is ~300 LOC. The CLI is a single binary you install with
+          <code>curl</code>. No 40 abstract classes, no hidden magic. Bring
+          your own LLM — OpenAI, Anthropic, local, whatever speaks OpenAI-style.
+        </p>
+        <div class="hero-cta">
+          <a class="btn accent" href="https://github.com/gabriel-belmonte/helix-agent-cli">
+            ★ install helix
+          </a>
+          <a class="btn ghost" href="#code">see the code</a>
+        </div>
+        <div class="badge-strip">
+          <span class="badge">curl | sh</span>
+          <span class="badge">no npm needed</span>
+          <span class="badge">~300 LOC engine</span>
+        </div>
+      </div>
+
+      <!-- Terminal demo -->
+      <div class="terminal" aria-label="terminal demo">
+        <div class="terminal-bar">
+          <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
+          <span class="tname">~ — helix -p "hola quien eres?"</span>
+        </div>
+        <div class="terminal-body">
+<span class="p">$</span> helix -p "hola quien eres?"
+
+<span class="ok">Helix:</span> ¡Hola! Soy Helix, un agente de codificación
+minimalista. Estoy aquí para ayudarte con tareas
+de software.
+
+<span class="c">// that reply came from the LLM — but helix's agent loop</span>
+<span class="c">// handles tool calls, multi-turn memory, and retry</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ECOSYSTEM -->
+  <section class="block" id="ecosystem">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">01</span>
+        <h2>Three packages. One idea.</h2>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">engine</span>
+          <h3>helix-agent</h3>
+          <p>
+            ~300 LOC. Agent loop, tool dispatch, multi-turn memory. Install with
+            <code>npm i helix-agent</code> or read the source in one sitting.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix-agent" class="card-link">source ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">cli</span>
+          <h3>helix-agent-cli</h3>
+          <p>
+            Coding agent in your terminal. Native binary, <code>curl | sh</code>
+            install, <code>helix config</code>, self-update. No npm, no node.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix-agent-cli" class="card-link">install ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">eval</span>
+          <h3>helix-agent-eval</h3>
+          <p>
+            Quality / cost / latency regression detection. Run batches of agent
+            runs and catch regressions before shipping.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix-agent-eval" class="card-link">source ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section class="block" id="why">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">02</span>
+        <h2>The frameworks got heavy. This doesn't.</h2>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">pain</span>
+          <h3>LangChain is opaque</h3>
+          <p>
+            You can't see what your agent does. Debugging means spelunking
+            through 12 wrapper layers. helix-agent is ~300 LOC you read in one
+            sitting.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">pain</span>
+          <h3>Locked into their LLM</h3>
+          <p>
+            Most frameworks hardcode a client. helix takes any provider
+            behind a one-method interface: <code>complete(messages)</code>.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">pain</span>
+          <h3>You can't extend it</h3>
+          <p>
+            When you need one small thing, you fork the world. Here you just
+            add a function. That's the whole API.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CODE -->
+  <section class="block" id="code">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">03</span>
+        <h2>From zero to a tool-calling agent.</h2>
+      </div>
+      <div class="code" set:html={codeSnippet}></div>
+      <p class="eyebrow" style="margin-top:18px">
+        // the loop, the tool dispatch and the memory are already in the core
+      </p>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">04</span>
+        <h2>What's in the box.</h2>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Tool-calling loop</h3>
+          <p>
+            The LLM requests a tool, helix runs it, feeds the result back,
+            and repeats — up to a configurable step cap so it can't loop forever.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>7 format parsers</h3>
+          <p>
+            Parses tool calls from GPT, Claude, Qwen, Llama, and everything
+            in between. <code>@@TOOL@@</code>, JSON blocks, Anthropic-style,
+            loose fallback.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Multi-turn memory</h3>
+          <p>
+            Conversation history persists across runs. Reset it when you want a
+            clean slate.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Provider-agnostic</h3>
+          <p>
+            Ship a <code>complete()</code> method and you're done. OpenAI,
+            OpenRouter, Ollama, Anthropic — all speak the same shape.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">cli</span>
+          <h3>Native binary</h3>
+          <p>
+            <code>curl | sh</code> installs a single binary. No npm, no node,
+            no dependencies. Works on macOS, Linux x64/arm64.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">roadmap</span>
+          <h3>Streaming</h3>
+          <p>Token-by-token output. Lands once the funding goal is hit.</p>
+        </div>
+        <div class="card">
+          <span class="tag">roadmap</span>
+          <h3>Retry / fallback</h3>
+          <p>Automatic provider fallback when one model times out.</p>
+        </div>
+        <div class="card">
+          <span class="tag">roadmap</span>
+          <h3>Sponsor screencasts</h3>
+          <p>Build-alongs for the harder features, for sponsors only.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SPONSOR -->
+  <section class="sponsor" id="sponsor">
+    <div class="wrap">
+      <span class="eyebrow">// keep it open, keep it maintained</span>
+      <h2>Built in the open. Sponsored by people who ship with it.</h2>
+      <p>
+        helix is MIT and always will be. If it saves you an afternoon of
+        framework wrestling, throw a few euros at the work — 100% of personal
+        sponsorships go to development.
+      </p>
+      <div class="tiers">
+        <div class="tier">
+          <div class="price">€7<span style="font-size:0.9rem">/mo</span></div>
+          <h4>the saints</h4>
+          <p>Just thanks. No perks needed, your support keeps it alive.</p>
+        </div>
+        <div class="tier">
+          <div class="price">€14<span style="font-size:0.9rem">/mo</span></div>
+          <h4>builders</h4>
+          <p>Access to sponsor-only screencasts + early features before release.</p>
+        </div>
+        <div class="tier">
+          <div class="price">agency</div>
+          <h4>teams</h4>
+          <p>Using it in client work? Priority support + a warm thank-you.</p>
+        </div>
+      </div>
+      <div class="hero-cta" style="margin-top:32px">
+        <a class="btn accent" href="https://github.com/sponsors/gabriel-belmonte">
+          → sponsor on github
+        </a>
+        <a class="btn ghost" style="border-color:#3a3a30;color:#e8e6dc" href="https://ko-fi.com/gabrielbelmonte">
+          ko-fi
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap" style="display:flex;justify-content:space-between;width:100%;flex-wrap:wrap;gap:10px">
+      <span>helix — MIT © gabriel-belmonte</span>
+      <span>made by a dev in Spain, for devs everywhere</span>
+    </div>
+  </footer>
+</Layout>

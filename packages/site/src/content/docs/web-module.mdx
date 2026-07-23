@@ -1,0 +1,59 @@
+---
+title: The web module
+description: web_search + web_extract — granular, opt-in, self-hosted.
+sidebar:
+  order: 2
+---
+
+# The web module
+
+The web capability is **not one tool** — it's a group of two granular,
+independently toggleable modules. Each is off by default.
+
+| Module | Tool name | Backend | Flag |
+|--------|-----------|---------|------|
+| Search | `web_search` | SearXNG (self-hosted) | `--web-search` |
+| Extract | `web_extract` | Firecrawl-compatible local server | `--web-extract` |
+| Both | — | — | `--web` |
+
+## Why split?
+
+So a user can:
+
+- enable **only search** (no Python server needed), or
+- enable **only extract** (no Docker needed), or
+- **replace just one piece** with their own implementation via a plugin
+  (e.g. swap `web_search` for an Exa/Brave/Tavily-backed tool) without
+  touching the other.
+
+## How it's wired
+
+`helix-core` resolves the active tool set from config:
+
+```ts
+const web = config.web ?? {};
+if (web.search)  registry.register(createWebSearchTool(config.infra));
+if (web.extract) registry.register(createWebExtractTool(config.infra));
+```
+
+If the local backend isn't running, each module lazily provisions it on first
+use (see [Self-provisioning infra](/helix/self-provisioning/)).
+
+## `web_search`
+
+```ts
+web_search({ q: "rust async runtime", limit: 10 })
+// → { query, results: [{ title, url, content }] }
+```
+
+## `web_extract`
+
+```ts
+web_extract({ url: "https://example.com" })
+// → { url, success, markdown, title }
+```
+
+Both are plain `{ name, description, run }` tools — the same shape as any
+built-in or plugin tool. That uniformity is what makes them replaceable.
+
+➡️ Next: [Self-provisioning infra](/helix/self-provisioning/)

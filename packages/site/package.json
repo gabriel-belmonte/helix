@@ -10,7 +10,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "astro": "^4.15.0",
+    "@astrojs/mdx": "^7.0.3",
+    "@astrojs/starlight": "^0.41.4",
+    "astro": "^7.1.3",
     "playwright-core": "^1.61.1"
   }
 }

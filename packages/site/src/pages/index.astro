@@ -34,24 +34,23 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
         <a href="#ecosystem">ecosystem</a>
         <a href="#code">code</a>
         <a href="#features">features</a>
-        <a href="#sponsor">sponsor</a>
+        <a href="/helix/introduction/">docs ↗</a>
         <a href="https://github.com/gabriel-belmonte/helix">github ↗</a>
       </div>
     </div>
   </nav>
-
   <!-- HERO -->
   <header class="hero">
     <div class="wrap hero-grid">
       <div>
-        <span class="eyebrow">// typescript · ~300 LOC · mit</span>
+        <span class="eyebrow">// typescript · modular · mit</span>
         <h1>
           A coding agent<br />you can <em>actually read</em>.
         </h1>
         <p class="lead">
-          The engine is ~300 LOC. The CLI is a single binary you install with
-          <code>curl</code>. No 40 abstract classes, no hidden magic. Bring
-          your own LLM — OpenAI, Anthropic, local, whatever speaks OpenAI-style.
+          The engine is ~300 LOC. The architecture is one readable core that
+          every surface shares. Modules like <code>web</code> are opt-in and
+          swappable — bring your own LLM, your own search, your own anything.
         </p>
         <div class="hero-cta">
           <a class="btn accent" href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli">
@@ -60,9 +59,9 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
           <a class="btn ghost" href="#code">see the code</a>
         </div>
         <div class="badge-strip">
-          <span class="badge">curl | sh</span>
-          <span class="badge">no npm needed</span>
           <span class="badge">~300 LOC engine</span>
+          <span class="badge">helix-core single source</span>
+          <span class="badge">modular · swappable</span>
         </div>
       </div>
 
@@ -91,9 +90,19 @@ de software.
     <div class="wrap">
       <div class="section-head">
         <span class="num">01</span>
-        <h2>Three packages. One idea.</h2>
+        <h2>One core. Many surfaces.</h2>
       </div>
       <div class="cards">
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>helix-core</h3>
+          <p>
+            The single source of truth: agent runtime, tool registry, plugin
+            system and config schema. CLI, TUI, web UI and Desktop all import
+            from here — fix once, benefit everywhere.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/core" class="card-link">source ↗</a>
+        </div>
         <div class="card">
           <span class="tag">engine</span>
           <h3>helix-agent</h3>
@@ -108,7 +117,8 @@ de software.
           <h3>helix-agent-cli</h3>
           <p>
             Coding agent in your terminal. Native binary, <code>curl | sh</code>
-            install, <code>helix config</code>, self-update. No npm, no node.
+            install, <code>helix config</code>, self-update. Granular
+            <code>--web-search</code> / <code>--web-extract</code> flags.
           </p>
           <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli" class="card-link">install ↗</a>
         </div>
@@ -120,6 +130,15 @@ de software.
             runs and catch regressions before shipping.
           </p>
           <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/eval" class="card-link">source ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">web</span>
+          <h3>helix-site</h3>
+          <p>
+            Landing + docs (Astro + Starlight). Documents the architecture, the
+            modular web tooling, and how to replace or write your own modules.
+          </p>
+          <a href="/helix/docs/" class="card-link">docs ↗</a>
         </div>
       </div>
     </div>
@@ -214,7 +233,31 @@ de software.
           <h3>Provider-agnostic</h3>
           <p>
             Ship a <code>complete()</code> method and you're done. OpenAI,
-            OpenRouter, Ollama, Anthropic — all speak the same shape.
+            OpenRouter, Ollama, Anthropic, Zen — all speak the same shape.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Modular + opt-in</h3>
+          <p>
+            Features like web split into <code>web_search</code> and
+            <code>web_extract</code> — toggle each independently. Off by default.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Self-provisioning</h3>
+          <p>
+            Enable web and Helix starts its own local infra (SearXNG via Docker,
+            a Firecrawl-compatible extract server via Python) — zero config.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>Plugin system</h3>
+          <p>
+            A plugin is a plain function. Register tools, or override a built-in
+            with <code>ctx.overrideTool(...)</code>. No fork, no patch.
           </p>
         </div>
         <div class="card">
@@ -226,19 +269,12 @@ de software.
           </p>
         </div>
         <div class="card">
-          <span class="tag">roadmap</span>
-          <h3>Streaming</h3>
-          <p>Token-by-token output. Lands once the funding goal is hit.</p>
-        </div>
-        <div class="card">
-          <span class="tag">roadmap</span>
-          <h3>Retry / fallback</h3>
-          <p>Automatic provider fallback when one model times out.</p>
-        </div>
-        <div class="card">
-          <span class="tag">roadmap</span>
-          <h3>Sponsor screencasts</h3>
-          <p>Build-alongs for the harder features, for sponsors only.</p>
+          <span class="tag">core</span>
+          <h3>One source of truth</h3>
+          <p>
+            <code>helix-core</code> is shared by CLI, future TUI, web UI and
+            Desktop. Behavior never diverges between surfaces.
+          </p>
         </div>
       </div>
     </div>

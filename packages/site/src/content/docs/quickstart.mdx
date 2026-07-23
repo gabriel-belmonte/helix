@@ -1,0 +1,65 @@
+---
+title: Quick start
+description: Install Helix and run your first agent with the web module on.
+sidebar:
+  order: 2
+---
+
+# Quick start
+
+## Install the CLI
+
+```bash
+# native binary (no npm/node needed at runtime)
+curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
+```
+
+Or build from source (needs Bun for the compile step):
+
+```bash
+git clone https://github.com/gabriel-belmonte/helix
+cd helix && npm install && npm run build
+```
+
+## Your first run
+
+```bash
+# plain coding agent
+helix -p "list the files in this repo and summarize the README"
+
+# with the web module (search + extract)
+helix --web -p "search the web for 'best TS agent frameworks 2026' and summarize the top result"
+```
+
+## Granular web flags
+
+The web group is split so you only pay for what you use:
+
+```bash
+helix --web-search  -p "search for X"        # only web_search (SearXNG)
+helix --web-extract -p "extract https://…"   # only web_extract (Firecrawl-compatible)
+```
+
+Both are **off by default**. When enabled and the local infra isn't already
+running, Helix provisions it automatically (see
+[Self-provisioning infra](/helix/self-provisioning/)).
+
+## Use the engine directly
+
+```ts
+import { Agent, defineTool } from "helix-agent";
+
+const echo = defineTool("echo", "returns the input",
+  async (input: { msg: string }) => ({ msg: input.msg }));
+
+const agent = new Agent({
+  name: "Helper",
+  system: "You are a helpful assistant.",
+  llm: yourLLMProvider, // any { complete(messages) }
+  tools: [echo],
+});
+
+const reply = await agent.run("echo hello");
+```
+
+➡️ Next: [Architecture](/helix/architecture/)

@@ -1,0 +1,57 @@
+---
+title: Introduction
+description: What Helix is today — a modular, transparent TypeScript agent framework.
+sidebar:
+  order: 1
+slug: introduction
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Helix
+
+**Helix is a minimal, transparent TypeScript agent framework** — an engine you
+can actually read, plus a growing, **modular ecosystem** where every capability
+(search, extract, shell, files…) is a swappable module.
+
+It started as a ~300 LOC engine + a `curl | sh` CLI. It has since grown into a
+monorepo with a **single source of truth** (`helix-core`) that every surface
+(CLI, future TUI, web UI, Dashboard, Desktop) shares — and a **plugin system**
+so you can replace or add any module without forking.
+
+<CardGrid>
+  <Card title="Single source of truth" icon="approve-check">
+    `helix-core` holds the agent runtime, tool registry, plugin system and
+    config schema. CLI, TUI and web UI are thin adapters on top.
+  </Card>
+  <Card title="Modular & opt-in" icon="puzzle">
+    Features like web are split into granular, independently toggleable modules
+    (`web_search`, `web_extract`). Off by default.
+  </Card>
+  <Card title="Self-provisioning" icon="rocket">
+    Enable web and Helix starts its own local infra (SearXNG via Docker,
+    a Firecrawl-compatible extract server via Python) — zero config.
+  </Card>
+  <Card title="Replaceable" icon="setting">
+    A plugin can override any built-in module (e.g. swap SearXNG for your API)
+    with one `ctx.overrideTool(...)` call.
+  </Card>
+</CardGrid>
+
+## Packages
+
+| Package | Role |
+|---------|------|
+| `helix-agent` | The raw engine: agent loop, tool dispatch, format parsers. |
+| `helix-core` | **Single source of truth** — runtime, registry, plugins, config. |
+| `helix-agent-cli` | Terminal coding agent (`helix …`), native binary. |
+| `helix-agent-eval` | Quality / cost / latency regression detection. |
+| `helix-site` | This site + docs (Astro + Starlight). |
+
+## Philosophy
+
+- **Readable over clever.** No 40 abstract classes, no hidden magic.
+- **Bring your own LLM.** Any provider behind `complete(messages)` works.
+- **Modules you control.** Turn features on/off; swap them for your own.
+
+➡️ Next: [Quick start](/helix/quickstart/)

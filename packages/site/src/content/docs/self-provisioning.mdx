@@ -1,0 +1,70 @@
+---
+title: Self-provisioning infra
+description: How Helix starts its own local web infra when it's missing.
+sidebar:
+  order: 3
+---
+
+# Self-provisioning infra
+
+When you enable the web module, Helix **checks for local infra and brings it up
+if it's missing** — so `helix --web` works out of the box with zero setup.
+
+## Search: SearXNG via Docker
+
+`ensureSearch()` health-checks `SEARXNG_URL` (default `http://127.0.0.1:8888`).
+If it's down and Docker is available, Helix runs:
+
+```bash
+sudo docker run -d --name helix-searxng --restart unless-stopped \
+  -p 127.0.0.1:8888:8080 searxng/searxng:latest
+```
+
+then waits (up to ~30s) for the `/search?q=…&format=json` endpoint to respond.
+
+> **Note:** Helix uses `sudo docker` because the default VPS user isn't in the
+> `docker` group. Adjust for your environment. If Docker is unavailable, search
+> is simply disabled (with a warning) while extract keeps working.
+
+## Extract: Firecrawl-compatible server (no Docker)
+
+`ensureExtract()` health-checks `FIRECRAWL_URL` (default
+`http://127.0.0.1:8787`). If it's down, Helix starts its **own bundled Python
+server**:
+
+```bash
+python3 <core>/extract-server/extract_server.py
+```
+
+This is a self-contained, **zero-dependency** (besides `python3` +
+`trafilatura`) Firecrawl-compatible endpoint that exposes the same
+`POST /v1/scrape` API the tool expects. Extraction chain (never returns empty
+silently):
+
+1. GitHub raw README via API (SPA-safe)
+2. `trafilatura` (fetch HTML → extract)
+3. `Lightpanda` real headless browser (defeats JS/SPA)
+4. `readability-lxml` → `markdownify`
+5. `BeautifulSoup` `get_text` (last resort)
+
+The server is spawned detached (survives the CLI process) and bound to
+loopback only.
+
+## Endpoints are configurable
+
+```ts
+buildAgent(llm, {
+  config: {
+    web: { search: true, extract: true },
+    infra: {
+      searxngUrl: "http://127.0.0.1:8888",
+      firecrawlUrl: "http://127.0.0.1:8787",
+    },
+  },
+});
+```
+
+or via CLI flags/env. If you already run your own SearXNG / Firecrawl, point
+Helix at them and nothing gets provisioned.
+
+➡️ Next: [Plugin system](/helix/plugins/)

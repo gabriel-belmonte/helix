@@ -1,0 +1,55 @@
+---
+title: Architecture
+description: How Helix is structured — one core, many thin surfaces.
+sidebar:
+  order: 1
+---
+
+# Architecture
+
+Helix follows a **single-source-of-truth** design: one package owns the runtime
+and every surface is a thin adapter.
+
+```text
+packages/
+  core/        ← ÚNICA FUENTE (helix-core)
+    src/registry.ts     ToolRegistry + PluginSystem + config schema
+    src/builtins.ts     read_file, write_file, list_dir, run_bash, search_files
+    src/web_search.ts   createWebSearchTool()  (opt-in, SearXNG)
+    src/web_extract.ts  createWebExtractTool() (opt-in, Firecrawl-compatible)
+    src/web-infra.ts    ensureSearch() / ensureExtract() — self-provisioning
+    src/agent.ts        buildAgent(config, plugins) — shared by all surfaces
+  cli/         ← thin surface (imports core)
+  agent/       ← the raw engine (helix-agent)
+  eval/        ← quality/cost regression
+  site/        ← this site + docs
+  (tui/ web/ desktop/ ← future surfaces, all consume core)
+```
+
+## Core responsibilities
+
+- **Tool registry** — a flat `Map<name, Tool>`. Built-ins register first,
+  then feature modules, then plugins. Plugins may override a name.
+- **Plugin system** — a plugin is `{ name, register(ctx) }`. `ctx` exposes
+  `registry`, `config`, and `overrideTool(tool)`.
+- **Config schema** — a plain object, never env-side magic:
+
+  ```ts
+  type HelixConfig = {
+    web?: { search?: boolean; extract?: boolean };
+    features?: Record<string, boolean>;
+    infra?: { searxngUrl?: string; firecrawlUrl?: string };
+  };
+  ```
+
+- **Shared agent builder** — `buildAgent(llm, { config, plugins })` assembles
+  the tool set and system prompt identically for every surface. CLI, TUI and
+  web UI all call the same function, so behavior never diverges.
+
+## Why this shape
+
+Because you said it best: *"una sola fuente para CLI, TUI, web, Dashboard y
+Desktop"*. Splitting the runtime into `helix-core` means a bug fixed (or a
+module added) in one place benefits every surface at once.
+
+➡️ Next: [The web module](/helix/web-module/)

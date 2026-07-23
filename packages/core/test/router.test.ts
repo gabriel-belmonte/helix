@@ -1,5 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { makeProviderRouter } from "../src/router";
+import { describe, it, before, after } from "node:test";
+import assert from "node:assert";
+import { makeProviderRouter } from "../src/router.js";
 import type { ChatMessage, LLMProvider } from "helix-agent";
 
 function fakeProvider(reply: string, fail = false): LLMProvider {
@@ -12,7 +13,10 @@ function fakeProvider(reply: string, fail = false): LLMProvider {
 }
 
 /** A mutable flag we can toggle mid-test. */
-function toggleableProvider(label: string, initialFail = false): LLMProvider & { shouldFail: boolean } {
+function toggleableProvider(
+  label: string,
+  initialFail = false
+): LLMProvider & { shouldFail: boolean } {
   const p = { shouldFail: initialFail };
   return Object.assign(p, {
     complete: async (_msgs: ChatMessage[]) => {
@@ -28,7 +32,10 @@ describe("makeProviderRouter", () => {
       { name: "a", provider: fakeProvider("from-a") },
       { name: "b", provider: fakeProvider("from-b") },
     ]);
-    expect(await r.complete([{ role: "user", content: "hi" }])).toBe("from-a");
+    assert.strictEqual(
+      await r.complete([{ role: "user", content: "hi" }]),
+      "from-a"
+    );
   });
 
   it("skips a failed provider and tries the next", async () => {
@@ -36,7 +43,10 @@ describe("makeProviderRouter", () => {
       { name: "fail", provider: fakeProvider("", true) },
       { name: "ok", provider: fakeProvider("from-ok") },
     ]);
-    expect(await r.complete([{ role: "user", content: "hi" }])).toBe("from-ok");
+    assert.strictEqual(
+      await r.complete([{ role: "user", content: "hi" }]),
+      "from-ok"
+    );
   });
 
   it("throws when all providers fail", async () => {
@@ -44,16 +54,16 @@ describe("makeProviderRouter", () => {
       { name: "a", provider: fakeProvider("", true) },
       { name: "b", provider: fakeProvider("", true) },
     ]);
-    await expect(r.complete([{ role: "user", content: "hi" }])).rejects.toThrow(
-      "all 2 providers failed"
+    await assert.rejects(
+      () => r.complete([{ role: "user", content: "hi" }]),
+      /all 2 providers failed/
     );
   });
 
   it("tracks stats per provider", async () => {
-    const pA = toggleableProvider("A", true); // starts failing
-    const pB = toggleableProvider("B", false); // starts OK
-    const pC = toggleableProvider("C", true); // starts failing
-
+    const pA = toggleableProvider("A", true);
+    const pB = toggleableProvider("B", false);
+    const pC = toggleableProvider("C", true);
     const r = makeProviderRouter([
       { name: "A", provider: pA },
       { name: "B", provider: pB },
@@ -61,20 +71,20 @@ describe("makeProviderRouter", () => {
     ]);
 
     // Attempt 1: A fails, B succeeds.
-    expect(await r.complete([{ role: "user", content: "hi" }])).toBe("ok:B");
-    expect(r.stats[0].err).toBe(1); // A failed
-    expect(r.stats[0].ok).toBe(0);
-    expect(r.stats[1].ok).toBe(1); // B succeeded
-    expect(r.stats[1].err).toBe(0);
+    assert.strictEqual(await r.complete([{ role: "user", content: "hi" }]), "ok:B");
+    assert.strictEqual(r.stats[0].err, 1);
+    assert.strictEqual(r.stats[0].ok, 0);
+    assert.strictEqual(r.stats[1].ok, 1);
+    assert.strictEqual(r.stats[1].err, 0);
 
-    // Attempt 2: A fails, B fails — but now C succeeds.
+    // Attempt 2: A fails, B fails, C succeeds.
     pB.shouldFail = true;
     pC.shouldFail = false;
-    expect(await r.complete([{ role: "user", content: "hi" }])).toBe("ok:C");
-    expect(r.stats[0].err).toBe(2); // A failed twice
-    expect(r.stats[1].ok).toBe(1); // B still has its 1 success
-    expect(r.stats[1].err).toBe(1); // B failed once in attempt 2
-    expect(r.stats[2].ok).toBe(1); // C succeeded
-    expect(r.stats[2].err).toBe(0);
+    assert.strictEqual(await r.complete([{ role: "user", content: "hi" }]), "ok:C");
+    assert.strictEqual(r.stats[0].err, 2);
+    assert.strictEqual(r.stats[1].ok, 1);
+    assert.strictEqual(r.stats[1].err, 1);
+    assert.strictEqual(r.stats[2].ok, 1);
+    assert.strictEqual(r.stats[2].err, 0);
   });
 });

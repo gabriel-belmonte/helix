@@ -20,17 +20,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/site
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Use Bun (not npm): the monorepo root uses the `workspace:*` protocol,
+      # which npm does not understand (EUNSUPPORTEDPROTOCOL). Bun resolves the
+      # local helix-* packages and the Rollup native binaries correctly.
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-      - run: npm install
-      - run: npm install @rollup/rollup-linux-x64-gnu --save-optional
-      - run: npm run build
+          bun-version: latest
+      - name: Install dependencies (workspace root)
+        run: bun install
+      - name: Build site
+        working-directory: packages/site
+        run: bun run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: packages/site/dist

@@ -11,18 +11,20 @@ export default defineConfig({
   // on GitHub Pages (prevents 404s from malformed absolute URLs).
   site: "https://gabriel-belmonte.github.io",
   i18n: {
-    // English by default; Spanish as a translation.
-    defaultLocale: "en",
+    // The default locale lives at the site root (/helix/). Spanish is under
+    // /helix/es/. Starlight maps the "root" locale to src/content/docs/, so the
+    // English home is /helix/ and the landing page is disabled.
+    defaultLocale: "root",
     locales: [
       {
-        path: "en",
+        path: "root",
         codes: ["en-US", "en"],
         label: "English",
         sidebar: [
           {
             label: "Start here",
             items: [
-              { label: "Introduction", link: "/helix/" },
+              { label: "Introduction", link: "/helix/introduction/" },
               { label: "Quick start", link: "/helix/quickstart/" },
               { label: "Authentication & API keys", link: "/helix/authentication/" },
             ],
@@ -70,7 +72,7 @@ export default defineConfig({
           {
             label: "Empieza aquí",
             items: [
-              { label: "Introducción", link: "/helix/es/" },
+              { label: "Introducción", link: "/helix/es/introduction/" },
               { label: "Inicio rápido", link: "/helix/es/quickstart/" },
               { label: "Autenticación y claves API", link: "/helix/es/authentication/" },
             ],

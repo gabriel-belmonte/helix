@@ -14,7 +14,7 @@ import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
 import type { ChatMessage } from "helix-agent";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
@@ -487,30 +487,32 @@ function runDashboard() {
 // In a source checkout it spawns the TUI with Bun; in a standalone binary it
 // prints instructions.
 function runTui() {
-  const here = import.meta.dirname ?? ".";
-  const candidates = [
-    join(here, "../tui/src/tui.tsx"), // dev: packages/cli -> packages/tui
-    "/app/packages/tui/dist/tui.js", // docker (if mounted)
-  ];
-  const entry = candidates.find((c) => existsSync(c));
-  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
-
-  if (entry && bun) {
-    console.log(chalk.green("✓") + " launching Helix TUI (Ctrl+C to quit, Ctrl+M to pick model)\n");
-    const child = spawn(bun, [entry], {
-      stdio: "inherit",
-      env: { ...process.env },
-    });
+  // 1) Companion binary installed alongside helix (via install.sh).
+  const cliPath = process.execPath; // /usr/local/bin/helix
+  const companion = join(dirname(cliPath), "helix-tui");
+  if (existsSync(companion)) {
+    const child = spawn(companion, [], { stdio: "inherit", env: { ...process.env } });
     child.on("exit", (code) => process.exit(code ?? 0));
     return;
   }
 
-  // Fallback.
+  // 2) Dev checkout: spawn the TUI with Bun.
+  const here = import.meta.dirname ?? ".";
+  const devEntry = join(here, "../tui/src/tui.tsx");
+  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+  if (existsSync(devEntry) && bun) {
+    console.log(chalk.green("✓") + " launching Helix TUI (Ctrl+C to quit, Ctrl+M to pick model)\n");
+    const child = spawn(bun, [devEntry], { stdio: "inherit", env: { ...process.env } });
+    child.on("exit", (code) => process.exit(code ?? 0));
+    return;
+  }
+
+  // 3) Fallback.
   console.log(chalk.yellow("!") + " Helix TUI needs the tui package or a source checkout.");
   console.log(chalk.gray("  From a source checkout:"));
   console.log(`    ${chalk.cyan("bun run packages/tui/src/tui.tsx")}`);
-  console.log(chalk.gray("  Or after installing the npm package:"));
-  console.log(`    ${chalk.cyan("helix-tui")}`);
+  console.log(chalk.gray("  Or install via npm:"));
+  console.log(`    ${chalk.cyan("npm i -g helix-tui && helix-tui")}`);
 }
 
 async function main() {

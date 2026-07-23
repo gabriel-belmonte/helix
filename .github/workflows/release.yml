@@ -40,6 +40,14 @@ jobs:
           bun build packages/cli/cli.ts --compile --target=bun-darwin-aarch64 --outfile=dist/helix-darwin-aarch64
           bun build packages/cli/cli.ts --compile --target=bun-darwin-x64     --outfile=dist/helix-darwin-x64
           bun build packages/cli/cli.ts --compile --target=bun-windows-x64    --outfile=dist/helix-windows-x64.exe
+          # Compile the TUI companion binary for each platform.
+          # Use --external to skip react-devtools-core (ink devtools, not needed).
+          TUI_EXTRA="--external react-devtools-core"
+          bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-linux-aarch64  --outfile=dist/helix-tui-linux-aarch64
+          bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-linux-x64      --outfile=dist/helix-tui-linux-x64
+          bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-darwin-aarch64 --outfile=dist/helix-tui-darwin-aarch64
+          bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-darwin-x64     --outfile=dist/helix-tui-darwin-x64
+          bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-windows-x64    --outfile=dist/helix-tui-windows-x64.exe
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,4 +61,9 @@ jobs:
             dist/helix-darwin-aarch64 \
             dist/helix-darwin-x64 \
             dist/helix-windows-x64.exe \
+            dist/helix-tui-linux-aarch64 \
+            dist/helix-tui-linux-x64 \
+            dist/helix-tui-darwin-aarch64 \
+            dist/helix-tui-darwin-x64 \
+            dist/helix-tui-windows-x64.exe \
             packages/cli/install.sh

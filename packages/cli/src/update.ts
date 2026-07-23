@@ -98,6 +98,24 @@ export async function runUpdate(): Promise<void> {
     renameSync(tmpBin, currentBin);      // new → current
     chmodSync(currentBin, 0o755);
 
+    // Also update the TUI companion binary if it exists.
+    const binDir = dirname(currentBin);
+    const tuiAsset = asset.replace("helix-", "helix-tui-");
+    const tuiEntry = releaseInfo.assets?.find((a: any) => a.name === tuiAsset);
+    if (tuiEntry?.browser_download_url) {
+      const tuiBin = join(binDir, "helix-tui");
+      console.log(`→ updating companion ${tuiAsset}...`);
+      try {
+        execSync(`curl -fsSL "${tuiEntry.browser_download_url}" -o "${tuiBin}.new"`, { timeout: 60_000 });
+        chmodSync(tuiBin + ".new", 0o755);
+        renameSync(tuiBin, tuiBin + ".bak");   // old → .bak
+        renameSync(tuiBin + ".new", tuiBin);    // new → current
+        console.log(`  tui companion updated`);
+      } catch {
+        console.warn(`  warning: could not update tui companion`);
+      }
+    }
+
     // Save version marker next to the binary
     saveLocalVersion(latestVersion);
 

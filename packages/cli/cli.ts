@@ -397,22 +397,18 @@ function printStatus(cfg: HelixConfig) {
 
 // Launch the Helix Dashboard (web control panel) on :8799.
 // In a dev checkout it spawns the workspace server with Bun; in a standalone
-// binary (or when Bun isn't available) it prints the Docker / compose command.
+// binary it detects Docker and offers to run the containerized dashboard.
 function runDashboard() {
   const PORT = process.env.PORT ?? "8799";
-  // Candidate locations for the dashboard server entry, relative to this CLI.
   const here = import.meta.dirname ?? ".";
-  const candidates = [
-    join(here, "../web/server/index.ts"), // dev: packages/cli -> packages/web
-    "/app/packages/web/server/index.ts", // docker cli image (if web mounted)
-  ];
-  const server = candidates.find((c) => existsSync(c));
-  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
 
-  if (server && bun) {
+  // 1) Dev checkout: spawn the workspace server with Bun.
+  const serverCandidate = join(here, "../web/server/index.ts");
+  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+  if (existsSync(serverCandidate) && bun) {
     console.log(chalk.green("✓") + ` launching Helix Dashboard on http://localhost:${PORT}`);
     console.log(chalk.gray("  (Ctrl+C to stop)\n"));
-    const child = spawn(bun, [server], {
+    const child = spawn(bun, [serverCandidate], {
       stdio: "inherit",
       env: { ...process.env, PORT },
     });
@@ -420,11 +416,70 @@ function runDashboard() {
     return;
   }
 
-  // Fallback: standalone binary or no Bun — point to the containerized dashboard.
-  console.log(chalk.yellow("!") + " Helix Dashboard needs the web package or Docker.");
-  console.log(chalk.gray("  Run it with Docker Compose:"));
-  console.log(`    ${chalk.cyan("docker compose up")}   # serves http://localhost:${PORT}`);
-  console.log(chalk.gray("  Or, from a source checkout:"));
+  // 2) Docker available: run the containerized dashboard.
+  const dockerPaths = ["docker", "/usr/bin/docker", "/usr/local/bin/docker"];
+  const hasDocker = dockerPaths.some((p) => existsSync(p));
+  if (hasDocker) {
+    const configVol = join(homedir(), ".helix");
+    console.log(chalk.green("✓") + " Docker detected — starting the Helix Dashboard container...\n");
+    console.log(chalk.gray(`  Dashboard → http://localhost:${PORT}`));
+    console.log(chalk.gray(`  Config    → ${configVol} mounted at /root/.helix`));
+    console.log(chalk.gray("  Press Ctrl+C to stop.\n"));
+
+    // The user needs the image. Try to use docker compose first (if they have
+    // the repo cloned), otherwise run the container directly.
+    const composeCandidates = [
+      join(process.cwd(), "docker-compose.yml"),
+      join(process.cwd(), "docker-compose.yaml"),
+      join(process.cwd(), "Dockerfile"),
+    ];
+    const hasCompose = composeCandidates.some((p) => existsSync(p));
+
+    if (hasCompose && existsSync(join(process.cwd(), "Dockerfile"))) {
+      // Build from local source.
+      const child = spawn("docker", ["compose", "up", "--build", "-d"], {
+        stdio: "inherit",
+        cwd: process.cwd(),
+      });
+      child.on("exit", (code) => {
+        if (code === 0) {
+          console.log(chalk.green("\n✓") + ` Helix Dashboard running on http://localhost:${PORT}`);
+        }
+        process.exit(code ?? 0);
+      });
+    } else {
+      // Run the pre-built image from GitHub Container Registry.
+      // Pulls automatically if not available locally.
+      const image = "ghcr.io/gabriel-belmonte/helix/helix-web:latest";
+      const args = [
+        "run", "-d", "--rm",
+        "--name", "helix-web",
+        "-p", `${PORT}:8799`,
+        "-v", `${configVol}:/root/.helix`,
+        "-e", `PORT=${PORT}`,
+        image,
+      ];
+      const child = spawn("docker", args, { stdio: "inherit" });
+      child.on("exit", (code) => {
+        if (code === 0) {
+          console.log(chalk.green("\n✓") + ` Helix Dashboard running on http://localhost:${PORT}`);
+        } else {
+          // Pull failed or image not found — fallback to build instructions.
+          console.log(chalk.yellow("\n!") + " Could not pull the image. Build it locally:");
+          console.log(`  ${chalk.cyan("docker build --target web -t helix-web .")}  # from the repo root`);
+          console.log(`  ${chalk.cyan("docker run -p 8799:8799 -v $HOME/.helix:/root/.helix helix-web")}`);
+        }
+        process.exit(code ?? 0);
+      });
+    }
+    return;
+  }
+
+  // 3) Nothing available — print instructions.
+  console.log(chalk.yellow("!") + " Helix Dashboard needs Docker or the web package.");
+  console.log(chalk.gray("  Install Docker and run:"));
+  console.log(`    ${chalk.cyan("docker run -d -p 8799:8799 -v $HOME/.helix:/root/.helix ghcr.io/gabriel-belmonte/helix/helix-web:latest")}`);
+  console.log(chalk.gray("  Or from a source checkout:"));
   console.log(`    ${chalk.cyan("bun run server/index.ts")}  # in packages/web`);
 }
 

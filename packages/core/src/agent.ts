@@ -10,6 +10,7 @@ import {
   makeSkillTool,
   type HelixSkill,
 } from "./skill.js";
+import { makeMemoryTools, readSoul } from "helix-memory";
 
 // Default skill directories: ~/.helix/skills and ./skills (project-local).
 import { homedir } from "node:os";
@@ -59,7 +60,11 @@ export async function buildAgent(
   // Skills: discover + add the `use_skill` tool + guidance block.
   const skillDirs = [...DEFAULT_SKILL_DIRS, ...(opts?.skillDirs ?? [])];
   const skills: HelixSkill[] = discoverSkills(skillDirs);
-  const allTools: Tool[] = [...tools, ...makeSkillTool(skills)];
+  const allTools: Tool[] = [...tools, ...makeSkillTool(skills), ...makeMemoryTools()];
+
+  // Persona (human-authored soul.md) + accumulated memory context.
+  const soul = readSoul();
+  const soulBlock = soul ? `\n\n# Persona (soul.md)\n${soul}` : "";
 
   const SYSTEM = [
     "You are Helix, a minimal coding agent that helps with software tasks.",
@@ -73,6 +78,9 @@ export async function buildAgent(
     "- When you run bash, keep commands non-destructive unless the user asked.",
     "- Use tools to gather facts; then give a concise answer or apply the change.",
     "- Respond in the same language as the user.",
+    "- You have memory tools (remember/recall/reflect). Use `remember` to persist",
+    "  durable facts, preferences, or decisions so you don't ask again next session.",
+    soulBlock,
   ].join("\n");
 
   const systemWithSkills = skills.length

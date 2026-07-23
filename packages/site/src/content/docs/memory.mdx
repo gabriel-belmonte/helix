@@ -1,0 +1,94 @@
+---
+title: Memory
+description: Modular, swappable memory for Helix — a MemoryStore interface with a JSONL backend, plus remember/recall/reflect tools.
+sidebar:
+  order: 4
+---
+
+# Memory
+
+Helix has a **modular memory system** (`helix-memory`). The agent only depends
+on a `MemoryStore` *interface*; the default backend is a JSONL file, but you can
+swap it for SQLite, Postgres, a vector store, or a remote API **without touching
+the agent**.
+
+This mirrors how Helix handles plugins and MCP: the surface never knows which
+backend is active, so changing the memory system is a one-line change.
+
+## Why JSONL (not a single Markdown file)?
+
+| | JSONL (`memory.jsonl`) | Markdown (`MEMORY.md`) |
+|---|---|---|
+| Append a memory | one line, no rewrite | rewrite the whole file |
+| Metadata (ts, bank, importance) | free, structured | hacky (separators/`§`) |
+| Concurrent writes | append-only, safe | corruptible |
+| Human-readable | via `jq` / convert | yes, directly |
+
+We still use **Markdown for `soul.md`** (the agent persona — *you* write it by
+hand, so it should be legible). Memory that the *agent* accumulates is JSONL
+with metadata for real retrieval. This is the split Hermes does well with
+`SOUL.md` (MD) vs `MEMORY.md`/`USER.md` (MD) + Mnemosyne (SQLite) — Helix just
+picks the lighter default.
+
+## The interface
+
+```ts
+interface MemoryStore {
+  remember(entry: Omit<MemoryEntry, "ts">): MemoryEntry;
+  recall(query: string, opts?: { n?: number; bank?: string }): MemoryEntry[];
+  reflect(query: string, opts?: { bank?: string }): string;
+  list(opts?: { bank?: string }): MemoryEntry[];
+  clear(opts?: { bank?: string }): void;
+}
+```
+
+Implement this once and pass your store to `makeMemoryTools(store)` — the agent
+tools (`remember` / `recall` / `reflect`) keep working unchanged.
+
+## Tools (auto-registered)
+
+`buildAgent` registers three tools, so the agent can manage its own memory:
+
+- **`remember`** — persist a fact / preference / project note.
+  `{ text, type?, bank?, importance? }`
+- **`recall`** — retrieve memories relevant to a query. `{ query, bank? }`
+- **`reflect`** — synthesize a short answer from accumulated memory. `{ query, bank? }`
+
+`buildAgent` also injects `soul.md` (if present) into the system prompt as the
+persona block.
+
+## Scoping with banks
+
+Each memory has a `bank`. `global` is shared everywhere; `project:<name>`
+isolates per project (like Hindsight's bank IDs). `recall` / `clear` filter by
+bank, so a project's memories never leak into another.
+
+## Storage
+
+| File | Purpose |
+|------|---------|
+| `~/.helix/memory.jsonl` | one JSON line per memory (append-only) |
+| `~/.helix/soul.md` | optional persona, Markdown, human-authored |
+
+## Dashboard
+
+The web dashboard has a **Memory** section: add/inspect/clear memories, switch
+banks, and view `soul.md`. Endpoints:
+
+- `GET /api/memory?bank=global`
+- `POST /api/memory` — `{ text, type?, bank?, importance? }`
+- `DELETE /api/memory?bank=global`
+- `GET /api/soul`
+
+## Swapping the backend
+
+To use SQLite instead of JSONL, write a class that implements `MemoryStore`
+(e.g. with `better-sqlite3` or `bun:sqlite`) and change the one line in
+`buildAgent` / your surface:
+
+```ts
+const store = new SqliteMemoryStore();      // instead of JsonlMemoryStore
+const tools = makeMemoryTools(store);       // agent tools unchanged
+```
+
+No other code changes. That is the whole point of the modular boundary.

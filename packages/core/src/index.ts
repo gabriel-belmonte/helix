@@ -9,3 +9,5 @@ export * from "./provider.js";
 export * from "./auth.js";
 export * from "./skill.js";
 export * from "./agent.js";
+export { makeMemoryTools, readSoul, JsonlMemoryStore } from "helix-memory";
+export type { MemoryStore, MemoryEntry, MemoryType } from "helix-memory";

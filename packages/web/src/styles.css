@@ -100,3 +100,18 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
 .bubble.bot { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); }
 .chat-input { display: flex; gap: 10px; margin-top: 14px; max-width: 760px; }
 .chat-input input { flex: 1; }
+
+/* Memory */
+.memory-add { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.memory-add input { flex: 1; min-width: 220px; }
+.memory-add select { width: 120px; }
+.memory-add .bank { width: 110px; }
+.memory-meta { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.soul { margin-top: 16px; }
+.soul pre { white-space: pre-wrap; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--border); }
+.tag.bank { color: var(--accent); }
+.small { font-size: 11px; }
+.cards { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.card .row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.card .txt { font-size: 14px; }

@@ -8,6 +8,7 @@
     "packages/eval",
     "packages/mcp",
     "packages/tui",
+    "packages/memory",
     "packages/web",
     "packages/site"
   ],

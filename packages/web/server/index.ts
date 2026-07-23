@@ -19,6 +19,7 @@ import { loadConfig, saveConfig, type HelixConfig } from "../../cli/src/config.j
 import { listCredentials, setKey, removeKey, PROVIDER_ENV } from "helix-core";
 import { discoverSkills, buildAgent, loadProvider } from "helix-core";
 import { scriptedLLM } from "helix-agent";
+import { JsonlMemoryStore, readSoul } from "helix-memory";
 
 const HELIX_DIR = join(homedir(), ".helix");
 const MCP_PATH = join(HELIX_DIR, "helix.mcp.json");
@@ -146,6 +147,34 @@ app.post("/api/chat", async (c) => {
   const reply = await agent.run(message);
   return c.json({ reply });
 });
+
+// --- Memory (helix-memory: JSONL store) ---
+const memoryStore = new JsonlMemoryStore();
+
+app.get("/api/memory", (c) => {
+  const bank = c.req.query("bank") || "global";
+  return c.json({ bank, entries: memoryStore.list({ bank }) });
+});
+
+app.post("/api/memory", async (c) => {
+  const body = await c.req.json<{ text: string; type?: string; bank?: string; importance?: number }>();
+  if (!body.text) return c.json({ error: "text required" }, 400);
+  const entry = memoryStore.remember({
+    type: (body.type as any) || "fact",
+    text: body.text,
+    bank: body.bank || "global",
+    importance: body.importance ?? 0.6,
+  });
+  return c.json(entry);
+});
+
+app.delete("/api/memory", (c) => {
+  const bank = c.req.query("bank") || "global";
+  memoryStore.clear({ bank });
+  return c.json({ ok: true, bank });
+});
+
+app.get("/api/soul", (c) => c.json({ soul: readSoul() }));
 
 // --- Files (browser rooted at project root) ---
 app.get("/api/files", (c) => {

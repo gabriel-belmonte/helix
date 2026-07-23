@@ -23,7 +23,8 @@ modules. Bring your own LLM. **MCP + Skills compatible.**
 | [`helix-agent-cli`](packages/cli) | Coding agent CLI (`helix`) — Bun-compiled binary | `npm i helix-agent-cli` |
 | [`helix-tui`](packages/tui) | Terminal UI (Ink) over the same core — chat, streaming, live tool calls | `npm i helix-tui` |
 | [`helix-agent-eval`](packages/eval) | Quality / cost / latency regression detection | `npm i helix-agent-eval` |
-| [`helix-web`](packages/web) | Dashboard — web control panel (config, keys, skills, MCP, files) | `npm i helix-web` |
+| [`helix-memory`](packages/memory) | Modular memory (swappable `MemoryStore`, JSONL default) + remember/recall/reflect tools | `npm i helix-memory` |
+| [`helix-web`](packages/web) | Dashboard — web control panel (config, keys, skills, MCP, files, memory) | `npm i helix-web` |
 | [`helix-site`](packages/site) | Landing + docs ([live](https://gabriel-belmonte.github.io/helix-agent/)) | — |
 
 ## Features

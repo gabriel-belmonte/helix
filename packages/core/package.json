@@ -21,7 +21,8 @@
   "author": "gabriel-belmonte",
   "license": "MIT",
   "dependencies": {
-    "helix-agent": "*"
+    "helix-agent": "*",
+    "helix-memory": "*"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

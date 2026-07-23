@@ -59,6 +59,7 @@
       "version": "0.1.0",
       "dependencies": {
         "helix-agent": "*",
+        "helix-memory": "*",
       },
       "devDependencies": {
         "@types/node": "^20.11.0",
@@ -85,6 +86,16 @@
       },
       "devDependencies": {
         "@types/node": "^22.0.0",
+        "typescript": "^5.5.0",
+      },
+    },
+    "packages/memory": {
+      "name": "helix-memory",
+      "version": "0.1.0",
+      "dependencies": {
+        "helix-agent": "*",
+      },
+      "devDependencies": {
         "typescript": "^5.5.0",
       },
     },
@@ -863,6 +874,8 @@
     "helix-core": ["helix-core@workspace:packages/core"],
 
     "helix-mcp": ["helix-mcp@workspace:packages/mcp"],
+
+    "helix-memory": ["helix-memory@workspace:packages/memory"],
 
     "helix-site": ["helix-site@workspace:packages/site"],
 

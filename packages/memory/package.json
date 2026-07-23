@@ -1,0 +1,19 @@
+{
+  "name": "helix-memory",
+  "version": "0.1.0",
+  "description": "Modular memory for Helix — swappable MemoryStore backends (JSONL default) + remember/recall/reflect tools.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test test/*.test.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "helix-agent": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

@@ -36,6 +36,7 @@
     "helix-agent": "*",
     "helix-core": "*",
     "helix-mcp": "*",
+    "helix-agent-eval": "*",
     "ora": "^9.4.1"
   },
   "devDependencies": {

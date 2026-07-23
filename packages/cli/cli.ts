@@ -8,6 +8,7 @@ import { makeMcpPlugin } from "helix-mcp";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
+import { handleEval, type EvalCliOpts } from "./src/eval.js";
 import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
 import type { ChatMessage } from "helix-agent";
 import * as readline from "node:readline/promises";
@@ -36,6 +37,10 @@ interface CliOpts {
   modelsList?: boolean;
   modelsSelect?: boolean;
   modelsSet?: string;
+  eval?: boolean;
+  evalSuite?: string;
+  evalModel?: string;
+  evalCompare?: string;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -97,6 +102,18 @@ function parseArgs(argv: string[]): CliOpts {
         opts.modelsList = true;
       }
     }
+    else if (a === "eval") {
+      opts.eval = true;
+      // `helix eval --suite <file> [--model <slug>] [--compare <slug>]`
+      let j = i + 1;
+      while (argv[j] && argv[j].startsWith("--")) {
+        if (argv[j] === "--suite" && argv[j + 1]) opts.evalSuite = argv[++j];
+        else if (argv[j] === "--model" && argv[j + 1]) opts.evalModel = argv[++j];
+        else if (argv[j] === "--compare" && argv[j + 1]) opts.evalCompare = argv[++j];
+        j++;
+      }
+      i = j - 1;
+    }
     else if (a === "--web") opts.webSearch = opts.webExtract = true;
     else if (a === "--web-search") opts.webSearch = true;
     else if (a === "--web-extract") opts.webExtract = true;
@@ -122,6 +139,9 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix models")}               list OpenCode Zen models (free highlighted)`);
   console.log(`  ${chalk.cyan("helix models select")}       interactive model picker (saves to config)`);
   console.log(`  ${chalk.cyan("helix models set <id>")}     set the model directly\n`);
+  console.log(`  ${chalk.cyan("helix eval --suite <f>")}    evaluate a model over a JSON suite of cases`);
+  console.log(`  ${chalk.cyan("helix eval --suite <f> --model <slug>")}   force a specific model`);
+  console.log(`  ${chalk.cyan("helix eval --suite <f> --compare <slug>")}   A/B two models\n`);
   console.log(`  ${chalk.cyan("helix --web -p \"...\"")}        enable web_search + web_extract (self-hosted)`);
   console.log(`  ${chalk.cyan("helix --web-search -p \"...\"")}  enable only web_search`);
   console.log(`  ${chalk.cyan("helix --web-extract -p \"...\"")} enable only web_extract\n`);
@@ -311,6 +331,22 @@ async function main() {
   // Models subcommand (Zen catalog + picker)
   if (opts.modelsList || opts.modelsSelect) {
     await handleModels(opts);
+    return;
+  }
+
+  // Eval subcommand — run/compare model quality across a suite.
+  if (opts.eval) {
+    try {
+      await handleEval({
+        suite: opts.evalSuite,
+        model: opts.evalModel,
+        compare: opts.evalCompare,
+        scripted: opts.scripted,
+      } as EvalCliOpts);
+    } catch (e: any) {
+      console.error(chalk.red("✗") + " " + e.message);
+      process.exit(1);
+    }
     return;
   }
 

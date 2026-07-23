@@ -116,6 +116,7 @@ export default defineConfig({
       description: "Minimal, transparent TypeScript agent framework — docs.",
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/gabriel-belmonte/helix" },
+        { icon: "heart", label: "Sponsor (Buy me a coffee)", href: "https://buymeacoffee.com/gabrielbelmonte" },
       ],
     }),
     mdx(),

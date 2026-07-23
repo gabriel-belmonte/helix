@@ -41,6 +41,7 @@ interface CliOpts {
   evalSuite?: string;
   evalModel?: string;
   evalCompare?: string;
+  evalJudge?: string;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -104,12 +105,13 @@ function parseArgs(argv: string[]): CliOpts {
     }
     else if (a === "eval") {
       opts.eval = true;
-      // `helix eval --suite <file> [--model <slug>] [--compare <slug>]`
+      // `helix eval --suite <file> [--model <slug>] [--compare <slug>] [--judge <slug>]`
       let j = i + 1;
       while (argv[j] && argv[j].startsWith("--")) {
         if (argv[j] === "--suite" && argv[j + 1]) opts.evalSuite = argv[++j];
         else if (argv[j] === "--model" && argv[j + 1]) opts.evalModel = argv[++j];
         else if (argv[j] === "--compare" && argv[j + 1]) opts.evalCompare = argv[++j];
+        else if (argv[j] === "--judge" && argv[j + 1]) opts.evalJudge = argv[++j];
         j++;
       }
       i = j - 1;
@@ -141,7 +143,8 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix models set <id>")}     set the model directly\n`);
   console.log(`  ${chalk.cyan("helix eval --suite <f>")}    evaluate a model over a JSON suite of cases`);
   console.log(`  ${chalk.cyan("helix eval --suite <f> --model <slug>")}   force a specific model`);
-  console.log(`  ${chalk.cyan("helix eval --suite <f> --compare <slug>")}   A/B two models\n`);
+  console.log(`  ${chalk.cyan("helix eval --suite <f> --compare <slug>")}   A/B two models`);
+  console.log(`  ${chalk.cyan("helix eval --suite <f> --judge <slug>")}     grade outputs with an LLM judge\n`);
   console.log(`  ${chalk.cyan("helix --web -p \"...\"")}        enable web_search + web_extract (self-hosted)`);
   console.log(`  ${chalk.cyan("helix --web-search -p \"...\"")}  enable only web_search`);
   console.log(`  ${chalk.cyan("helix --web-extract -p \"...\"")} enable only web_extract\n`);
@@ -341,6 +344,7 @@ async function main() {
         suite: opts.evalSuite,
         model: opts.evalModel,
         compare: opts.evalCompare,
+        judge: opts.evalJudge,
         scripted: opts.scripted,
       } as EvalCliOpts);
     } catch (e: any) {

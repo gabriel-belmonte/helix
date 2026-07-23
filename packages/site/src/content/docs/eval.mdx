@@ -1,0 +1,130 @@
+---
+title: Model evaluation (eval)
+description: Compare models, measure quality, cost and latency with Helix eval and LLM-as-judge.
+sidebar:
+  order: 9
+---
+
+# Model evaluation (`helix eval`)
+
+Helix ships an evaluation harness so you can answer the only question that
+matters in production: **which model should I ship?**
+
+`helix eval` runs a suite of prompt→output cases through one or two models and
+reports **quality (score), cost and latency** in a single table. It reuses the
+exact same provider pipeline as the CLI/TUI/web, so what you measure is what you
+ship.
+
+## Install
+
+The eval package is part of the monorepo (`packages/eval`). The CLI command
+`helix eval` is wired through `packages/cli`. No extra install — if you have the
+CLI, you have eval.
+
+## A suite file
+
+A suite is a JSON array of cases. Each case has an `input` (the prompt sent to
+the model) and an `expected` reference answer used by the scorer.
+
+```json
+[
+  {
+    "id": "fib",
+    "input": "Write a TypeScript function `fib(n)` that returns the nth Fibonacci number using iteration. Return only the code.",
+    "expected": "A correct, runnable TypeScript iterative fib function."
+  },
+  {
+    "id": "debounce",
+    "input": "Write a JavaScript `debounce(fn, ms)` higher-order function. Return only the code.",
+    "expected": "A correct debounce HOF that delays fn calls by ms."
+  }
+]
+```
+
+> **Note on scoring.** By default a case passes if the model output *contains*
+> the expected text (`includes`). For real quality measurement use an
+> **LLM judge** (see below) — it grades the output 0..1 against the reference.
+
+## Single-model run
+
+```bash
+helix eval --suite coding.json --model deepseek-v4-flash-free
+```
+
+```
+=== Eval report — model: deepseek-v4-flash-free ===
+  cases:    4
+  passed:   4/4
+  avgScore: 1.000
+  avgLatency: 8375ms
+  totalCost: $0.0000
+```
+
+## A/B compare two models
+
+Add `--compare <slug>` to run the **same suite** through a second model and get
+a delta table:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare north-mini-code-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs north-mini-code-free (B) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     4/4  vs  4/4  (Δ +0)
+  avgLatency: 8375ms  vs  19692ms  (Δ +11317ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     deepseek-v4-flash-free
+```
+
+Winner = higher avg score; tie-break on cost (cheaper wins), then latency.
+Here both models were equally correct, but `deepseek-v4-flash-free` was **2.3×
+faster**, so it wins.
+
+## LLM-as-judge
+
+Substring matching is naive. Add `--judge <slug>` to grade every output with a
+model (any model, typically a cheap one) that returns a **0..1 quality score**:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare mimo-v2.5-free \
+  --judge deepseek-v4-flash-free
+```
+
+The judge reads `input`, `expected` (used as the reference answer) and `output`,
+then returns a number. This catches *plausible but wrong* code that substring
+matching would pass.
+
+## Using it in code
+
+The `helix-agent-eval` package is framework-agnostic:
+
+```ts
+import { runEval, compareEval, makeLlmJudge } from "helix-agent-eval";
+
+// 1. Score one agent
+const report = await runEval(cases, (input) => myAgent.run(input));
+
+// 2. A/B two agents
+const cmp = await compareEval(cases, agentA, agentB);
+console.log(cmp.winner, cmp.delta.deltaScore);
+
+// 3. LLM judge scorer
+const scorer = makeLlmJudge((prompt) => judgeModel.complete(prompt));
+```
+
+## Tips
+
+- **Cost is only counted if you set `costPer1kPrompt` / `costPer1kCompletion`**
+  on each case. Leave them at `0` for free models (that's the default).
+- **Latency includes network round-trip** to the provider — run several times
+  and average for stable numbers.
+- **Keep suites small and high-signal.** 5–10 hand-picked cases beat 1000 noisy
+  ones. This is regression detection, not a benchmark leaderboard.
+- **`--scripted`** runs the built-in deterministic LLM (no network, no keys) —
+  great for testing your suite shape before spending tokens.

@@ -1,0 +1,131 @@
+---
+title: Evaluación de modelos (eval)
+description: Compara modelos, mide calidad, coste y latencia con Helix eval y LLM-as-judge.
+sidebar:
+  order: 9
+---
+
+# Evaluación de modelos (`helix eval`)
+
+Helix incluye un harness de evaluación para responder la única pregunta que
+importa en producción: **¿qué modelo debo usar?**
+
+`helix eval` ejecuta una suite de casos prompt→salida a través de uno o dos
+modelos y reporta **calidad (score), coste y latencia** en una sola tabla.
+Reutiliza exactamente el mismo pipeline de providers que la CLI/TUI/web, así que
+lo que mides es lo que envías a producción.
+
+## Instalación
+
+El paquete eval forma parte del monorepo (`packages/eval`). El comando
+`helix eval` está cableado en `packages/cli`. No necesitas instalar nada extra:
+si tienes la CLI, tienes eval.
+
+## Un archivo suite
+
+Una suite es un array JSON de casos. Cada caso tiene un `input` (el prompt que se
+envía al modelo) y un `expected` (respuesta de referencia que usa el scorer).
+
+```json
+[
+  {
+    "id": "fib",
+    "input": "Escribe una función TypeScript `fib(n)` que devuelva el n-ésimo número de Fibonacci usando iteración. Devuelve solo el código.",
+    "expected": "Una función fib iterativa de TypeScript correcta y ejecutable."
+  },
+  {
+    "id": "debounce",
+    "input": "Escribe una higher-order function JavaScript `debounce(fn, ms)`. Devuelve solo el código.",
+    "expected": "Un debounce HOF correcto que retrasa las llamadas a fn por ms."
+  }
+]
+```
+
+> **Nota sobre el scoring.** Por defecto un caso pasa si la salida del modelo
+> *contiene* el texto esperado (`includes`). Para medir calidad real usa un
+> **juez LLM** (ver abajo) — puntúa la salida 0..1 contra la referencia.
+
+## Ejecución de un solo modelo
+
+```bash
+helix eval --suite coding.json --model deepseek-v4-flash-free
+```
+
+```
+=== Eval report — model: deepseek-v4-flash-free ===
+  cases:    4
+  passed:   4/4
+  avgScore: 1.000
+  avgLatency: 8375ms
+  totalCost: $0.0000
+```
+
+## Comparar A/B dos modelos
+
+Añade `--compare <slug>` para ejecutar la **misma suite** con un segundo modelo
+y obtener una tabla de deltas:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare north-mini-code-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs north-mini-code-free (B) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     4/4  vs  4/4  (Δ +0)
+  avgLatency: 8375ms  vs  19692ms  (Δ +11317ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     deepseek-v4-flash-free
+```
+
+Ganador = mayor score medio; desempate por coste (gana el más barato) y luego
+latencia. Aquí ambos modelos fueron igual de correctos, pero
+`deepseek-v4-flash-free` fue **2.3× más rápido**, así que gana.
+
+## Juez LLM (LLM-as-judge)
+
+El matching por substring es naive. Añade `--judge <slug>` para que un modelo
+(cualquiera, típicamente uno barato) puntúe cada salida con un **score de
+calidad 0..1**:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare mimo-v2.5-free \
+  --judge deepseek-v4-flash-free
+```
+
+El juez lee `input`, `expected` (usado como respuesta de referencia) y `output`,
+y devuelve un número. Esto detecta código *plausible pero incorrecto* que el
+matching por substring dejaría pasar.
+
+## Usarlo en código
+
+El paquete `helix-agent-eval` es agnóstico al framework:
+
+```ts
+import { runEval, compareEval, makeLlmJudge } from "helix-agent-eval";
+
+// 1. Evaluar un agente
+const report = await runEval(cases, (input) => myAgent.run(input));
+
+// 2. Comparar A/B dos agentes
+const cmp = await compareEval(cases, agentA, agentB);
+console.log(cmp.winner, cmp.delta.deltaScore);
+
+// 3. Scorer con juez LLM
+const scorer = makeLlmJudge((prompt) => judgeModel.complete(prompt));
+```
+
+## Consejos
+
+- **El coste solo se cuenta si fijas `costPer1kPrompt` / `costPer1kCompletion`**
+  en cada caso. Déjalos en `0` para modelos gratuitos (es el valor por defecto).
+- **La latencia incluye el round-trip de red** al proveedor — ejecuta varias
+  veces y haz la media para números estables.
+- **Mantén las suites pequeñas y de alta señal.** 5–10 casos elegidos a mano
+  superan a 1000 ruidosos. Esto es detección de regresiones, no un ranking.
+- **`--scripted`** ejecuta el LLM determinista integrado (sin red, sin claves) —
+  ideal para probar la forma de tu suite antes de gastar tokens.

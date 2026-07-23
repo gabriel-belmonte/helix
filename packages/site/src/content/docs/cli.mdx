@@ -1,0 +1,109 @@
+---
+title: CLI reference
+description: Every helix command — prompts, config, auth, models, eval, status and version.
+sidebar:
+  order: 7
+---
+
+# CLI reference
+
+The `helix` CLI is the primary way to run the agent. Install it from the
+[releases page](https://github.com/gabriel-belmonte/helix/releases) or with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
+```
+
+## Run a prompt
+
+```bash
+helix -p "refactor utils.ts to async/await"   # single shot, then exit
+helix                                          # interactive REPL
+helix -v -p "list files in src/"              # verbose: show tool calls
+```
+
+| Flag | Meaning |
+|------|---------|
+| `-p, --prompt <text>` | run one prompt and exit |
+| `-v, --verbose` | print tool calls as they happen |
+| `-c, --cwd <dir>` | run with a different working directory |
+| `--scripted` | use the built-in deterministic LLM (no network, no keys) — great for testing |
+
+## Config
+
+```bash
+helix config set provider zen        # one of: zen | hf | openrouter | openai
+helix config set model big-pickle
+helix config get                     # show full config
+helix config get model               # show one key
+helix config list                    # show config path + values
+```
+
+## API keys (auth)
+
+```bash
+helix auth login zen                 # prompt for a key (hidden input), saved to ~/.helix/auth.json
+helix auth list                      # show every provider + whether its key is set (masked)
+helix auth logout zen                # delete the stored key
+```
+
+Keys can also come from environment variables (`OPENCODE_ZEN_API_KEY`,
+`HF_TOKEN`, `OPENROUTER_API_KEY`, `OPENAI_API_KEY`). **Env vars always win**
+over stored keys.
+
+## Models
+
+```bash
+helix models            # list the OpenCode Zen catalog (free models highlighted)
+helix models select     # interactive picker → saves to config
+helix models set <id>   # set the model directly
+```
+
+## Status
+
+```bash
+helix status
+```
+
+Prints the **active provider + model** and the **API-key status of every
+provider** (set / not set, source = env or stored file, plus a sha256
+fingerprint of the stored key). Example:
+
+```
+Helix status
+  provider  zen
+  model     big-pickle
+
+API keys
+  ● set      zen         env (env:OPENCODE_ZEN_API_KEY)
+  ○ not set  hf          —
+  ○ not set  openrouter  —
+  ○ not set  openai      —
+
+  ● set   ○ not set
+  env vars take precedence over stored keys.
+```
+
+## Evaluate (eval)
+
+```bash
+helix eval --suite suite.json                       # run one model over a suite
+helix eval --suite suite.json --model deepseek-v4-flash-free
+helix eval --suite suite.json --compare north-mini-code-free   # A/B two models
+helix eval --suite suite.json --judge deepseek-v4-flash-free    # grade with an LLM judge
+```
+
+See [Model evaluation](/helix/eval/) for the suite format and worked examples.
+
+## Version
+
+```bash
+helix --version     # or: helix -V
+# → helix-agent-cli 0.1.0
+```
+
+## Update
+
+```bash
+helix update        # re-download the latest release binary
+```

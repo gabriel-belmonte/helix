@@ -22,7 +22,7 @@ export default defineConfig({
           {
             label: "Start here",
             items: [
-              { label: "Introduction", link: "/helix/introduction/" },
+              { label: "Introduction", link: "/helix/" },
               { label: "Quick start", link: "/helix/quickstart/" },
               { label: "Authentication & API keys", link: "/helix/authentication/" },
             ],
@@ -57,6 +57,7 @@ export default defineConfig({
             label: "Operations",
             items: [
               { label: "Model evaluation (eval)", link: "/helix/eval/" },
+              { label: "CLI reference", link: "/helix/cli/" },
             ],
           },
         ],
@@ -69,7 +70,7 @@ export default defineConfig({
           {
             label: "Empieza aquí",
             items: [
-              { label: "Introducción", link: "/helix/es/introduction/" },
+              { label: "Introducción", link: "/helix/es/" },
               { label: "Inicio rápido", link: "/helix/es/quickstart/" },
               { label: "Autenticación y claves API", link: "/helix/es/authentication/" },
             ],
@@ -104,6 +105,7 @@ export default defineConfig({
             label: "Operaciones",
             items: [
               { label: "Evaluación de modelos (eval)", link: "/helix/es/eval/" },
+              { label: "Referencia de la CLI", link: "/helix/es/cli/" },
             ],
           },
         ],

@@ -1,0 +1,109 @@
+---
+title: Referencia de la CLI
+description: Todos los comandos de helix — prompts, config, auth, modelos, eval, status y versión.
+sidebar:
+  order: 7
+---
+
+# Referencia de la CLI
+
+La CLI `helix` es la forma principal de ejecutar el agente. Instálala desde la
+[página de releases](https://github.com/gabriel-belmonte/helix/releases) o con:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
+```
+
+## Ejecutar un prompt
+
+```bash
+helix -p "refactoriza utils.ts a async/await"   # un disparo y sale
+helix                                          # REPL interactivo
+helix -v -p "lista los archivos en src/"        # verbose: muestra las llamadas a tools
+```
+
+| Flag | Significado |
+|------|-------------|
+| `-p, --prompt <texto>` | ejecuta un prompt y sale |
+| `-v, --verbose` | imprime las llamadas a tools en vivo |
+| `-c, --cwd <dir>` | ejecuta en otro directorio de trabajo |
+| `--scripted` | usa el LLM determinista integrado (sin red, sin claves) — ideal para probar |
+
+## Config
+
+```bash
+helix config set provider zen        # uno de: zen | hf | openrouter | openai
+helix config set model big-pickle
+helix config get                     # muestra toda la config
+helix config get model               # muestra una clave
+helix config list                    # muestra la ruta de config + valores
+```
+
+## Claves API (auth)
+
+```bash
+helix auth login zen                 # pide una clave (oculta), la guarda en ~/.helix/auth.json
+helix auth list                      # muestra cada proveedor y si su clave está (enmascarada)
+helix auth logout zen                # borra la clave guardada
+```
+
+También puedes usar variables de entorno (`OPENCODE_ZEN_API_KEY`, `HF_TOKEN`,
+`OPENROUTER_API_KEY`, `OPENAI_API_KEY`). **Las env vars siempre ganan** sobre
+las claves guardadas.
+
+## Modelos
+
+```bash
+helix models            # lista el catálogo de OpenCode Zen (modelos gratis resaltados)
+helix models select     # selector interactivo → guarda en config
+helix models set <id>   # fija el modelo directamente
+```
+
+## Estado (status)
+
+```bash
+helix status
+```
+
+Muestra el **provider + modelo activos** y el **estado de la API key de cada
+provider** (configurada / no, origen = env o archivo, más un fingerprint sha256
+de la clave guardada). Ejemplo:
+
+```
+Helix status
+  provider  zen
+  model     big-pickle
+
+API keys
+  ● set      zen         env (env:OPENCODE_ZEN_API_KEY)
+  ○ not set  hf          —
+  ○ not set  openrouter  —
+  ○ not set  openai      —
+
+  ● set   ○ not set
+  las env vars tienen prioridad sobre las claves guardadas.
+```
+
+## Evaluar (eval)
+
+```bash
+helix eval --suite suite.json                       # ejecuta un modelo sobre una suite
+helix eval --suite suite.json --model deepseek-v4-flash-free
+helix eval --suite suite.json --compare north-mini-code-free   # A/B de dos modelos
+helix eval --suite suite.json --judge deepseek-v4-flash-free    # puntúa con un LLM judge
+```
+
+Ve [Evaluación de modelos](/helix/es/eval/) para el formato de la suite y ejemplos.
+
+## Versión
+
+```bash
+helix --version     # o: helix -V
+# → helix-agent-cli 0.1.0
+```
+
+## Actualizar
+
+```bash
+helix update        # re-descarga el binario de la última release
+```

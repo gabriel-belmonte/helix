@@ -43,6 +43,7 @@ interface CliOpts {
   evalCompare?: string;
   evalJudge?: string;
   version?: boolean;
+  status?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -53,6 +54,7 @@ function parseArgs(argv: string[]): CliOpts {
     else if (a === "--scripted") opts.scripted = true;
     else if (a === "-v" || a === "--verbose") opts.verbose = true;
     else if (a === "-V" || a === "--version") opts.version = true;
+    else if (a === "status") opts.status = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
     else if (a === "config") {
       opts.config = true;
@@ -133,6 +135,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix")}                        interactive REPL`);
   console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
   console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
+  console.log(`  ${chalk.cyan("helix status")}              show provider, model and API-key status`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
@@ -352,12 +355,41 @@ function printVersion() {
   console.log(`helix-agent-cli ${v}`);
 }
 
+// Show the active provider + model and whether each provider's API key is set.
+function printStatus(cfg: HelixConfig) {
+  const creds = listCredentials();
+  const active = cfg.provider ?? "(unset)";
+  const activeModel = cfg.model ?? "(unset)";
+  console.log(chalk.bold("Helix status"));
+  console.log(`  ${chalk.cyan("provider")}  ${active}`);
+  console.log(`  ${chalk.cyan("model")}     ${activeModel}\n`);
+  console.log(chalk.bold("API keys"));
+  for (const c of creds) {
+    const mark = c.configured ? chalk.green("● set") : chalk.gray("○ not set");
+    const src = c.fromEnv
+      ? chalk.yellow("env") + chalk.gray(` (${c.source})`)
+      : c.source === "(none)"
+        ? chalk.gray("—")
+        : chalk.cyan(c.source);
+    const fp = c.fingerprint ? chalk.gray(`  ${c.fingerprint}`) : "";
+    console.log(`  ${mark.padEnd(10)} ${chalk.bold(c.provider.padEnd(11))} ${src}${fp}`);
+  }
+  console.log(chalk.gray("\n  ● set   ○ not set"));
+  console.log(chalk.gray("  env vars take precedence over stored keys."));
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
   // Version flag (works even with no config / offline).
   if (opts.version) {
     printVersion();
+    return;
+  }
+
+  // Status: active provider/model + which API keys are configured.
+  if (opts.status) {
+    printStatus(loadConfig());
     return;
   }
 

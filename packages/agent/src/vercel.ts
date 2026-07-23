@@ -23,16 +23,56 @@ export type VercelProviderOpts = {
   model: LanguageModel;
   /** Max retries on transient errors. Default 2. */
   maxRetries?: number;
+  /**
+   * Tools to expose for native function calling.
+   * When provided, Vercel's generateText/streamText passes them to the API
+   * as native function definitions. Tool calls are converted to @@TOOL@@ markers.
+   */
+  tools?: Array<{
+    name: string;
+    description: string;
+    /** JSON Schema object (NOT a Zod schema — use toJSON() if needed). */
+    parameters?: Record<string, unknown>;
+  }>;
 };
 
-// Convert helix messages → Vercel AI SDK format
+// Convert helix messages → Vercel AI SDK format.
+// AI SDK v7 is very strict about tool message format. To avoid complex
+// conversion, we fold tool results into the following user message.
 function toVercelMessages(messages: ChatMessage[]): any[] {
-  return messages
-    .filter((m) => m.role !== "system")
-    .map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+  const result: any[] = [];
+  let pendingToolResults: string[] = [];
+
+  for (const m of messages) {
+    if (m.role === "system") continue;
+
+    if (m.role === "tool") {
+      pendingToolResults.push(m.content);
+      continue;
+    }
+
+    // Before a user/assistant message, prepend any pending tool results.
+    if (pendingToolResults.length > 0) {
+      const toolBlock = "Tool results:\n" + pendingToolResults.join("\n");
+      // Merge into the next user message if possible, or add a synthetic one.
+      if (m.role === "user") {
+        result.push({ role: "user", content: toolBlock + "\n\n" + m.content });
+      } else {
+        result.push({ role: "user", content: toolBlock });
+        result.push({ role: m.role, content: m.content });
+      }
+      pendingToolResults = [];
+    } else {
+      result.push({ role: m.role, content: m.content });
+    }
+  }
+
+  // Flush remaining tool results (shouldn't happen, but be safe).
+  if (pendingToolResults.length > 0) {
+    result.push({ role: "user", content: "Tool results:\n" + pendingToolResults.join("\n") });
+  }
+
+  return result;
 }
 
 /**
@@ -149,20 +189,61 @@ export function vercelToolProvider(
  *   });
  */
 export function vercelStreamingProvider(opts: VercelProviderOpts): LLMProvider {
-  const { model, maxRetries = 2 } = opts;
+  const { model, maxRetries = 2, tools } = opts;
+
+  // Prepare Vercel tools format (plain JSON Schema, no Zod needed).
+  const vercelTools: Record<string, any> | undefined = tools?.length
+    ? Object.fromEntries(
+        tools.map((t) => [
+          t.name,
+          { description: t.description, parameters: t.parameters },
+        ])
+      )
+    : undefined;
 
   return {
     async complete(messages: ChatMessage[]): Promise<string> {
-      // Fallback: use non-streaming if no onChunk provided
       const ai = await import("ai");
       const systemMsg = messages.find((m) => m.role === "system");
-
-      const result = await ai.generateText({
+      const generateOpts: any = {
         model,
         system: systemMsg?.content,
         messages: toVercelMessages(messages),
         maxRetries,
-      });
+      };
+      if (vercelTools) generateOpts.tools = vercelTools;
+
+      const result = await ai.generateText(generateOpts);
+
+      // Convert native tool calls → @@TOOL@@ markers
+      if (result.toolCalls?.length) {
+        return result.toolCalls
+          .map((tc: any) => `@@TOOL@@ ${tc.toolName} ${JSON.stringify(tc.args)}`)
+          .join("\n");
+      }
+
+      // Fallback: parse XML-style tool calls from the text (common on OpenAI-compatible APIs)
+      const text = result.text;
+      const xmlToolCallRE = /<tool_call>\s*<function[=> ]+([^\s>]+)\s*>?\s*(.*?)\s*<\/function>\s*<\/tool_call>/gs;
+      let match: RegExpExecArray | null;
+      const toolResults: string[] = [];
+      let lastIndex = 0;
+
+      while ((match = xmlToolCallRE.exec(text)) !== null) {
+        const name = match[1];
+        let rawArgs = match[2].trim();
+        // Try to extract parameters from nested <parameter> tags
+        const paramRE = /<parameter=(\w+)>([^<]*)<\/parameter>/g;
+        let pmatch: RegExpExecArray | null;
+        const args: Record<string, string> = {};
+        while ((pmatch = paramRE.exec(rawArgs)) !== null) {
+          args[pmatch[1]] = pmatch[2];
+        }
+        const argsStr = Object.keys(args).length > 0 ? JSON.stringify(args) : (rawArgs || "{}");
+        toolResults.push(`@@TOOL@@ ${name} ${argsStr}`);
+      }
+
+      if (toolResults.length > 0) return toolResults.join("\n");
 
       return result.text;
     },
@@ -174,12 +255,15 @@ export function vercelStreamingProvider(opts: VercelProviderOpts): LLMProvider {
       const ai = await import("ai");
       const systemMsg = messages.find((m) => m.role === "system");
 
-      const result = await ai.streamText({
+      const streamOpts: any = {
         model,
         system: systemMsg?.content,
         messages: toVercelMessages(messages),
         maxRetries,
-      });
+      };
+      if (vercelTools) streamOpts.tools = vercelTools;
+
+      const result = await ai.streamText(streamOpts);
 
       let fullText = "";
       let toolCalls: any[] = [];
@@ -201,6 +285,24 @@ export function vercelStreamingProvider(opts: VercelProviderOpts): LLMProvider {
           .map((tc: any) => `@@TOOL@@ ${tc.toolName} ${JSON.stringify(tc.args)}`)
           .join("\n");
       }
+
+      // Fallback: parse XML-style tool calls from streamed text (same as complete).
+      const xmlToolCallRE = /<tool_call>\s*<function[=> ]+([^\s>]+)\s*>?\s*(.*?)\s*<\/function>\s*<\/tool_call>/gs;
+      let match: RegExpExecArray | null;
+      const toolResults: string[] = [];
+      while ((match = xmlToolCallRE.exec(fullText)) !== null) {
+        const name = match[1];
+        let rawArgs = match[2].trim();
+        const paramRE = /<parameter=(\w+)>([^<]*)<\/parameter>/g;
+        let pmatch: RegExpExecArray | null;
+        const args: Record<string, string> = {};
+        while ((pmatch = paramRE.exec(rawArgs)) !== null) {
+          args[pmatch[1]] = pmatch[2];
+        }
+        const argsStr = Object.keys(args).length > 0 ? JSON.stringify(args) : (rawArgs || "{}");
+        toolResults.push(`@@TOOL@@ ${name} ${argsStr}`);
+      }
+      if (toolResults.length > 0) return toolResults.join("\n");
 
       return fullText;
     },

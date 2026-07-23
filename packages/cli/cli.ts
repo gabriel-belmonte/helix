@@ -11,7 +11,7 @@ import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/con
 import { runUpdate } from "./src/update.js";
 import { handleEval, type EvalCliOpts } from "./src/eval.js";
 import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
-import type { ChatMessage } from "helix-agent";
+import type { ChatMessage, LLMProvider } from "helix-agent";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { join, dirname } from "node:path";
@@ -638,14 +638,6 @@ async function main() {
 
   if (opts.cwd) process.chdir(opts.cwd);
 
-  let llm;
-  try {
-    llm = loadProvider({ scripted: opts.scripted });
-  } catch (e: any) {
-    console.error(chalk.red("✗") + " " + e.message);
-    process.exit(1);
-  }
-
   // Verbose callback: log each tool call in real time
   const onToolCall = opts.verbose
     ? (name: string, input: unknown) => {
@@ -657,14 +649,12 @@ async function main() {
       }
     : undefined;
 
-  // Load persistent history and seed the agent
+  // --- Prepare plugins + tools before provider ---
   const savedHistory = loadHistory(20);
   const initialHistory: ChatMessage[] = savedHistory.map((e) => ({
     role: e.role,
     content: e.content,
   }));
-
-  // Load MCP servers from ~/.helix/helix.mcp.json or ./helix.mcp.json.
   const plugins: HelixPlugin[] = [];
   const mcpPath = (() => {
     const local = join(process.cwd(), "helix.mcp.json");
@@ -674,29 +664,28 @@ async function main() {
   if (mcpPath) {
     try {
       const raw = JSON.parse(readFileSync(mcpPath, "utf8"));
-      const servers = raw.servers ?? raw; // accept {servers:{}} or bare map
+      const servers = raw.servers ?? raw;
       plugins.push(makeMcpPlugin({ servers }));
       console.log(chalk.gray(`[mcp] loaded from ${mcpPath}`));
     } catch (e: any) {
       console.warn(chalk.yellow("!") + ` failed to parse ${mcpPath}: ${e.message}`);
     }
   }
-
-  // Optional compression plugins (toggled via config.features).
   const cfg = loadConfig();
   const feats = cfg.features ?? {};
-  if (feats.caveman) {
-    plugins.push(makeCavemanPlugin());
-    console.log(chalk.gray(`[caveman] tool output compression enabled`));
-  }
-  if (feats.rtk) {
-    plugins.push(makeRtkPlugin());
-    console.log(chalk.gray(`[rtk] tool output compression enabled`));
+  if (feats.caveman) { plugins.push(makeCavemanPlugin()); console.log(chalk.gray(`[caveman] compression enabled`)); }
+  if (feats.rtk) { plugins.push(makeRtkPlugin()); console.log(chalk.gray(`[rtk] compression enabled`)); }
+
+  let llm: LLMProvider;
+  try {
+    llm = loadProvider({ scripted: opts.scripted });
+  } catch (e: any) {
+    console.error(chalk.red("✗") + " " + e.message);
+    process.exit(1);
   }
 
   const agent = await buildAgent(llm, {
     config: {
-      // Merge config.web with CLI flags (flags win over stored config).
       web: {
         search: opts.webSearch ?? cfg.web?.search ?? false,
         extract: opts.webExtract ?? cfg.web?.extract ?? false,

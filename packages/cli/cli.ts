@@ -23,7 +23,8 @@ interface CliOpts {
   configGet?: boolean;
   update?: boolean;
   historyClear?: boolean;
-  web?: boolean;
+  webSearch?: boolean;
+  webExtract?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -56,7 +57,9 @@ function parseArgs(argv: string[]): CliOpts {
       opts.historyClear = true;
       i++; // skip "clear"
     }
-    else if (a === "--web") opts.web = true;
+    else if (a === "--web") opts.webSearch = opts.webExtract = true;
+    else if (a === "--web-search") opts.webSearch = true;
+    else if (a === "--web-extract") opts.webExtract = true;
   }
   return opts;
 }
@@ -73,7 +76,9 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
-  console.log(`  ${chalk.cyan("helix --web -p \"...\"")}      enable the web tool (search + extract via self-hosted infra)\n`);
+  console.log(`  ${chalk.cyan("helix --web -p \"...\"")}        enable web_search + web_extract (self-hosted)`);
+  console.log(`  ${chalk.cyan("helix --web-search -p \"...\"")}  enable only web_search`);
+  console.log(`  ${chalk.cyan("helix --web-extract -p \"...\"")} enable only web_extract\n`);
 
   console.log(chalk.bold("PROVIDERS (set via config or env)"));
   console.log(`  ${chalk.cyan("zen")}     OpenCode Zen (free Big Pickle)  → set provider zen; key=OPENCODE_ZEN_API_KEY`);
@@ -172,7 +177,9 @@ async function main() {
   }));
 
   const agent = await buildAgent(llm, {
-    config: { web: !!opts.web },
+    config: {
+      web: { search: !!opts.webSearch, extract: !!opts.webExtract },
+    },
     onToolCall,
     initialHistory,
   });

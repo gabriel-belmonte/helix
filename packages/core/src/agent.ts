@@ -14,7 +14,8 @@ const SYSTEM = [
   "- list_dir: list a directory",
   "- search_files: find files by name or grep content",
   "- run_bash: run a shell command",
-  "- web: (if enabled) search the web or extract a URL's content",
+  "- web_search: (if enabled) search the web via self-hosted SearXNG",
+  "- web_extract: (if enabled) extract a URL's content via self-hosted Firecrawl-compatible server",
   "",
   "CRITICAL RULES:",
   "- NEVER output code blocks in your reply. Always call a tool instead.",
@@ -34,7 +35,7 @@ export async function buildAgent(
     initialHistory?: ChatMessage[];
   }
 ): Promise<Agent> {
-  const config = opts?.config ?? { web: false };
+  const config = opts?.config ?? { web: { search: false, extract: false } };
   const tools = await resolveTools(config, opts?.plugins ?? []);
 
   return new Agent({

@@ -11,7 +11,8 @@
 
 import type { Tool } from "helix-agent";
 import { builtinTools } from "./builtins.js";
-import { createWebTool } from "./web.js";
+import { createWebSearchTool } from "./web_search.js";
+import { createWebExtractTool } from "./web_extract.js";
 
 // --------------------------------------------------------------------------
 // Tool registry
@@ -26,11 +27,21 @@ export type HelixTool = Tool;
 export class ToolRegistry {
   private tools = new Map<string, HelixTool>();
 
-  register(tool: HelixTool): void {
-    if (this.tools.has(tool.name)) {
+  /**
+   * Register a tool. By default, registering a name that already exists throws
+   * (prevents silent collisions). Pass `override=true` to replace an existing
+   * tool — this is how plugins swap a built-in for their own implementation.
+   */
+  register(tool: HelixTool, override = false): void {
+    if (this.tools.has(tool.name) && !override) {
       throw new Error(`Tool "${tool.name}" is already registered`);
     }
     this.tools.set(tool.name, tool);
+  }
+
+  /** Replace an existing tool (or add if absent). Convenience for plugins. */
+  override(tool: HelixTool): void {
+    this.register(tool, true);
   }
 
   has(name: string): boolean {
@@ -51,8 +62,11 @@ export class ToolRegistry {
 // --------------------------------------------------------------------------
 
 export type HelixConfig = {
-  /** Enable the `web` tool (search + extract via self-hosted infra). */
-  web?: boolean;
+  /** Web feature group (granular). Each piece is independently toggleable. */
+  web?: {
+    search?: boolean; // web_search tool (SearXNG)
+    extract?: boolean; // web_extract tool (Firecrawl-compatible local server)
+  };
   /** Extra features toggled by plugins / future surfaces. */
   features?: Record<string, boolean>;
   /** Endpoints for self-hosted infra (overridable per deploy). */
@@ -63,7 +77,7 @@ export type HelixConfig = {
 };
 
 export const defaultConfig: HelixConfig = {
-  web: false,
+  web: { search: false, extract: false },
   features: {},
   infra: {
     searxngUrl: "http://127.0.0.1:8888",
@@ -78,6 +92,12 @@ export const defaultConfig: HelixConfig = {
 export type HelixPluginContext = {
   registry: ToolRegistry;
   config: HelixConfig;
+  /**
+   * Register a tool, replacing any built-in/feature tool with the same name.
+   * Use this to swap Helix's default `web` (or any built-in) for your own.
+   *   ctx.overrideTool(myWebTool);  // replaces built-in `web` if present
+   */
+  overrideTool: (tool: HelixTool) => void;
 };
 
 export type HelixPlugin = {
@@ -102,13 +122,17 @@ export async function resolveTools(
   // 1. Always-on built-in tools.
   for (const t of builtinTools) registry.register(t);
 
-  // 2. Feature-gated tools.
-  if (config.web) {
-    registry.register(createWebTool(config.infra));
-  }
+  // 2. Feature-gated tools (granular web group).
+  const web = config.web ?? {};
+  if (web.search) registry.register(createWebSearchTool(config.infra));
+  if (web.extract) registry.register(createWebExtractTool(config.infra));
 
-  // 3. Plugins.
-  const ctx: HelixPluginContext = { registry, config };
+  // 3. Plugins (may override built-ins/features via ctx.overrideTool).
+  const ctx: HelixPluginContext = {
+    registry,
+    config,
+    overrideTool: (tool) => registry.override(tool),
+  };
   for (const p of plugins) await p.register(ctx);
 
   return registry.list();

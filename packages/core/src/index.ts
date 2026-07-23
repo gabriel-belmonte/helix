@@ -2,6 +2,7 @@
 
 export * from "./registry.js";
 export * from "./builtins.js";
-export * from "./web.js";
+export * from "./web_search.js";
+export * from "./web_extract.js";
 export * from "./web-infra.js";
 export * from "./agent.js";

@@ -146,6 +146,57 @@ export type WebInfraStatus = {
   error?: string;
 };
 
+/** Ensure only the SearXNG (search) side is up. */
+export async function ensureSearch(cfg: WebInfraConfig = {}): Promise<WebInfraStatus> {
+  const searxngUrl = cfg.searxngUrl ?? DEFAULTS.searxngUrl;
+  const status: WebInfraStatus = {
+    searxng: { url: searxngUrl, running: false, provisioned: false },
+    firecrawl: { url: "", running: false, provisioned: false },
+    dockerAvailable: false,
+  };
+  const docker = await dockerAvailable();
+  status.dockerAvailable = docker;
+  if (await urlUp(searxngUrl)) {
+    status.searxng.running = true;
+  } else if (docker) {
+    const port = cfg.searxngPort ?? DEFAULTS.searxngPort;
+    await ensureDocker(
+      "helix-searxng",
+      cfg.searxngImage ?? DEFAULTS.searxngImage,
+      port,
+      8080,
+      { path: "/search?q=test&format=json", method: "GET" }
+    ).catch(() => {});
+    status.searxng.running = await urlUp(searxngUrl);
+    status.searxng.provisioned = true;
+  } else {
+    status.error = "Docker unavailable — cannot auto-provision SearXNG. Install Docker or run it manually.";
+  }
+  return status;
+}
+
+/** Ensure only the extract (Firecrawl-compatible) side is up. */
+export async function ensureExtract(cfg: WebInfraConfig = {}): Promise<WebInfraStatus> {
+  const firecrawlUrl = cfg.firecrawlUrl ?? DEFAULTS.firecrawlUrl;
+  const status: WebInfraStatus = {
+    searxng: { url: "", running: false, provisioned: false },
+    firecrawl: { url: firecrawlUrl, running: false, provisioned: false },
+    dockerAvailable: false,
+  };
+  status.dockerAvailable = await dockerAvailable();
+  status.firecrawl.running = await ensureExtractServer(
+    firecrawlUrl,
+    cfg.firecrawlPort ?? DEFAULTS.firecrawlPort
+  );
+  status.firecrawl.provisioned =
+    !status.firecrawl.running && (await urlUp(firecrawlUrl)) === false;
+  if (!status.firecrawl.running) {
+    status.error =
+      "Extract server unavailable — ensure python3 + trafilatura are installed (Helix bundles extract_server.py).";
+  }
+  return status;
+}
+
 /**
  * Ensure local web infra is up. Returns the URLs to use (provisioning any
  * missing pieces). Never throws for missing infra — sets `error`.

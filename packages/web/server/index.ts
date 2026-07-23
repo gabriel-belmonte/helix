@@ -17,7 +17,8 @@ import { join, resolve, relative, dirname } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { loadConfig, saveConfig, type HelixConfig } from "../../cli/src/config.js";
 import { listCredentials, setKey, removeKey, PROVIDER_ENV } from "helix-core";
-import { discoverSkills } from "helix-core";
+import { discoverSkills, buildAgent, loadProvider } from "helix-core";
+import { scriptedLLM } from "helix-agent";
 
 const HELIX_DIR = join(homedir(), ".helix");
 const MCP_PATH = join(HELIX_DIR, "helix.mcp.json");
@@ -100,6 +101,50 @@ app.post("/api/mcp", async (c) => {
   const cfg = await c.req.json<{ servers: Record<string, unknown> }>();
   saveMcpConfig(cfg);
   return c.json(cfg);
+});
+
+// --- Chat (live agent over the web) ---
+// One in-memory agent per sessionId. The agent uses the configured provider
+// (resolved from ~/.helix/auth.json or env). Falls back to the scripted
+// provider when no key is set, so the dashboard still demonstrates the flow.
+const sessions = new Map<string, any>();
+
+async function getAgent(sessionId: string, demo = false) {
+  if (demo) {
+    const p = scriptedLLM((turn) => {
+      if (turn === 0) return "@@TOOL@@ list_dir {}";
+      return "Hello! I'm Helix running in demo mode (no API key needed).";
+    });
+    const a = await buildAgent(p, { config: {} });
+    sessions.set(sessionId, a);
+    return a;
+  }
+  let agent = sessions.get(sessionId);
+  if (agent) return agent;
+  let provider;
+  try {
+    provider = loadProvider();
+  } catch {
+    provider = scriptedLLM((turn) => {
+      if (turn === 0) return "@@TOOL@@ list_dir {}";
+      return "Hello! I'm Helix running in demo mode (no API key configured).";
+    });
+  }
+  agent = await buildAgent(provider, { config: {} });
+  sessions.set(sessionId, agent);
+  return agent;
+}
+
+app.post("/api/chat", async (c) => {
+  const { message, sessionId = "default", demo = false } = await c.req.json<{
+    message: string;
+    sessionId?: string;
+    demo?: boolean;
+  }>();
+  if (!message) return c.json({ error: "message required" }, 400);
+  const agent = await getAgent(sessionId, demo);
+  const reply = await agent.run(message);
+  return c.json({ reply });
 });
 
 // --- Files (browser rooted at project root) ---

@@ -35,6 +35,26 @@ test("GET /api/files rejects escaping the root", async () => {
   assert.ok(res.status === 400 || res.status === 404);
 });
 
+test("POST /api/chat returns a reply (demo mode, no key)", async () => {
+  const res = await app.request("/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ message: "hi", sessionId: "test-chat", demo: true }),
+  });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.ok(typeof body.reply === "string");
+  assert.ok(body.reply.length > 0);
+});
+
+test("POST /api/chat rejects empty message", async () => {
+  const res = await app.request("/api/chat", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  assert.equal(res.status, 400);
+});
 test("unknown api route still serves SPA fallback (or 404 if not built)", async () => {
   const res = await app.request("/some/spa/route");
   // 200 when dist/ is built; 404 when it isn't (serveStatic has no files).

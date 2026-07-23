@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { api } from "./api.js";
+import { ChatSection } from "./sections/Chat.js";
 import { ConfigSection } from "./sections/Config.js";
 import { KeysSection } from "./sections/Keys.js";
 import { SkillsSection } from "./sections/Skills.js";
 import { McpSection } from "./sections/Mcp.js";
 import { FilesSection } from "./sections/Files.js";
 
-type SectionId = "config" | "keys" | "skills" | "mcp" | "files";
+type SectionId = "chat" | "config" | "keys" | "skills" | "mcp" | "files";
 
 const NAV: { id: SectionId; label: string; icon: string }[] = [
+  { id: "chat", label: "Chat", icon: "💬" },
   { id: "config", label: "Config", icon: "⚙" },
   { id: "keys", label: "API Keys", icon: "🔑" },
   { id: "skills", label: "Skills", icon: "✦" },
@@ -41,6 +43,7 @@ export function App() {
       </aside>
 
       <main className="content">
+        {active === "chat" && <ChatSection />}
         {active === "config" && <ConfigSection />}
         {active === "keys" && <KeysSection />}
         {active === "skills" && <SkillsSection />}

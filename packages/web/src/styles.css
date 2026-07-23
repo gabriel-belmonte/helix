@@ -89,3 +89,14 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .card h3 { margin: 0 0 6px; font-size: 15px; }
 .path { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; word-break: break-all; }
 code { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+/* Chat */
+.chat { display: flex; flex-direction: column; gap: 10px; margin-top: 18px; max-width: 760px; height: 52vh; overflow-y: auto; padding-right: 8px; }
+.chat-empty { margin: auto; }
+.bubble { display: flex; flex-direction: column; gap: 2px; max-width: 80%; padding: 10px 14px; border-radius: 12px; }
+.bubble .who { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.bubble.user { align-self: flex-end; background: var(--accent); color: #fff; }
+.bubble.user .who { color: rgba(255,255,255,.7); }
+.bubble.bot { align-self: flex-start; background: var(--panel-2); border: 1px solid var(--border); }
+.chat-input { display: flex; gap: 10px; margin-top: 14px; max-width: 760px; }
+.chat-input input { flex: 1; }

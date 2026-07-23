@@ -1,7 +1,9 @@
-// Wires the helix-agent Agent with the coding-agent system prompt and tools.
+// Shared agent builder. Every Helix surface (CLI, TUI, web, Dashboard,
+// Desktop) calls `buildAgent` with its provider + config so behaviour is
+// identical everywhere. The system prompt + tool set come from `core`.
 
 import { Agent, type LLMProvider, type ChatMessage } from "helix-agent";
-import { tools } from "./tools.js";
+import { resolveTools, type HelixConfig, type HelixPlugin } from "./registry.js";
 
 const SYSTEM = [
   "You are Helix, a minimal coding agent that helps with software tasks.",
@@ -12,6 +14,7 @@ const SYSTEM = [
   "- list_dir: list a directory",
   "- search_files: find files by name or grep content",
   "- run_bash: run a shell command",
+  "- web: (if enabled) search the web or extract a URL's content",
   "",
   "CRITICAL RULES:",
   "- NEVER output code blocks in your reply. Always call a tool instead.",
@@ -22,13 +25,18 @@ const SYSTEM = [
   "- Respond in the same language as the user.",
 ].join("\n");
 
-export function buildAgent(
+export async function buildAgent(
   llm: LLMProvider,
   opts?: {
+    config?: HelixConfig;
+    plugins?: HelixPlugin[];
     onToolCall?: (name: string, input: unknown) => void;
     initialHistory?: ChatMessage[];
   }
-): Agent {
+): Promise<Agent> {
+  const config = opts?.config ?? { web: false };
+  const tools = await resolveTools(config, opts?.plugins ?? []);
+
   return new Agent({
     name: "Helix",
     system: SYSTEM,

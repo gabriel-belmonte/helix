@@ -1,5 +1,4 @@
-// File-system + shell tools for the Helix coding agent.
-// Each is a helix-agent Tool: { name, description, run }.
+// Built-in tools: file-system + shell. Always available (no feature flag).
 
 import { defineTool } from "helix-agent";
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
@@ -88,7 +87,6 @@ Returns matching file paths and/or content lines.`,
     const mode = input.mode ?? "files";
 
     if (mode === "files") {
-      // Use find via shell for glob matching
       try {
         const cmd = `find ${JSON.stringify(dir)} -name ${JSON.stringify(input.pattern)} -type f 2>/dev/null | head -50`;
         const out = execSync(cmd, { encoding: "utf8", timeout: 10_000 });
@@ -99,13 +97,11 @@ Returns matching file paths and/or content lines.`,
       }
     }
 
-    // content mode: grep
     try {
       const globArg = input.file_glob ? `--include=${JSON.stringify(input.file_glob)}` : "";
       const cmd = `grep -rn ${globArg} ${JSON.stringify(input.pattern)} ${JSON.stringify(dir)} 2>/dev/null | head -50`;
       const out = execSync(cmd, { encoding: "utf8", timeout: 10_000 });
       const lines = out.trim().split("\n").filter(Boolean).map((l) => {
-        // Strip the dir prefix for readability
         const rel = l.startsWith(dir) ? l.slice(dir.length + 1) : l;
         return rel;
       });
@@ -116,4 +112,4 @@ Returns matching file paths and/or content lines.`,
   }
 );
 
-export const tools = [readFile, writeFile, listDir, runBash, searchFiles];
+export const builtinTools = [readFile, writeFile, listDir, runBash, searchFiles];

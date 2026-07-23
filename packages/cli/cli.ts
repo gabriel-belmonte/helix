@@ -3,7 +3,7 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { buildAgent } from "./src/agent.js";
+import { buildAgent } from "helix-core";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -23,6 +23,7 @@ interface CliOpts {
   configGet?: boolean;
   update?: boolean;
   historyClear?: boolean;
+  web?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -55,6 +56,7 @@ function parseArgs(argv: string[]): CliOpts {
       opts.historyClear = true;
       i++; // skip "clear"
     }
+    else if (a === "--web") opts.web = true;
   }
   return opts;
 }
@@ -71,6 +73,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
+  console.log(`  ${chalk.cyan("helix --web -p \"...\"")}      enable the web tool (search + extract via self-hosted infra)\n`);
 
   console.log(chalk.bold("PROVIDERS (set via config or env)"));
   console.log(`  ${chalk.cyan("zen")}     OpenCode Zen (free Big Pickle)  → set provider zen; key=OPENCODE_ZEN_API_KEY`);
@@ -168,7 +171,11 @@ async function main() {
     content: e.content,
   }));
 
-  const agent = buildAgent(llm, { onToolCall, initialHistory });
+  const agent = await buildAgent(llm, {
+    config: { web: !!opts.web },
+    onToolCall,
+    initialHistory,
+  });
 
   if (opts.prompt) {
     if (opts.verbose) console.log(chalk.gray("→ prompt: " + opts.prompt));

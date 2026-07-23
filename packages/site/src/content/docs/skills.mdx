@@ -43,10 +43,16 @@ Detailed workflow / domain knowledge the agent should follow.
 
 ## Where skills live
 
-Helix scans these directories automatically:
+Helix scans these directories automatically (global + project, Helix-local and
+OpenCode/Claude-compatible):
 
 - `~/.helix/skills` — your personal skills
 - `./skills` — project-local skills (committed with the repo)
+- `~/.claude/skills`, `./.claude/skills` — OpenCode / Claude Code compatible
+- `~/.agents/skills`, `./.agents/skills` — agent-compatible
+
+So a skill installed by OpenCode into `.claude/skills/<name>` is picked up by
+Helix too — no moving required.
 
 You can add more via `buildAgent({ skillDirs: [...] })`.
 
@@ -80,18 +86,6 @@ That means you can use skills published there with zero changes.
 The format is identical: a folder with a `SKILL.md` whose YAML frontmatter has
 `name` + `description` (plus optional `license`, `compatibility`, `metadata`).
 Unknown frontmatter fields are ignored, exactly like OpenCode.
-
-### Where Helix looks
-
-Helix scans these directories automatically:
-
-- `~/.helix/skills` — your personal skills
-- `./skills` — project-local skills
-- `~/.claude/skills`, `./.claude/skills` — OpenCode/Claude-compatible
-- `~/.agents/skills`, `./.agents/skills` — agent-compatible
-
-So a skill installed by OpenCode into `.claude/skills/<name>` is picked up by
-Helix too.
 
 ### Install a skill from skills.sh
 

@@ -43,10 +43,16 @@ Flujo de trabajo / conocimiento de dominio detallado que el agente debe seguir.
 
 ## Dónde viven las skills
 
-Helix escanea estas carpetas automáticamente:
+Helix escanea estas carpetas automáticamente (global + proyecto, Helix-local y
+compatibles con OpenCode/Claude):
 
 - `~/.helix/skills` — tus skills personales
 - `./skills` — skills del proyecto (commiteadas con el repo)
+- `~/.claude/skills`, `./.claude/skills` — compatibles con OpenCode / Claude Code
+- `~/.agents/skills`, `./.agents/skills` — compatibles con agent
+
+Así, una skill que OpenCode instale en `.claude/skills/<name>` también la
+reconoce Helix — sin mover nada.
 
 Puedes añadir más vía `buildAgent({ skillDirs: [...] })`.
 
@@ -82,18 +88,6 @@ El formato es idéntico: una carpeta con un `SKILL.md` cuyo frontmatter YAML
 tiene `name` + `description` (más `license`, `compatibility`, `metadata`
 opcionales). Los campos de frontmatter desconocidos se ignoran, igual que en
 OpenCode.
-
-### Dónde busca Helix
-
-Helix escanea estas carpetas automáticamente:
-
-- `~/.helix/skills` — tus skills personales
-- `./skills` — skills del proyecto
-- `~/.claude/skills`, `./.claude/skills` — compatibles con OpenCode/Claude
-- `~/.agents/skills`, `./.agents/skills` — compatibles con agent
-
-Así, una skill que OpenCode instale en `.claude/skills/<name>` también la
-reconoce Helix.
 
 ### Instalar una skill desde skills.sh
 

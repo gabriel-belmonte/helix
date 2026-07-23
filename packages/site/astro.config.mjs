@@ -7,6 +7,14 @@ import mdx from "@astrojs/mdx";
 export default defineConfig({
   base: "/helix",
   outDir: "dist",
+  i18n: {
+    // English by default; Spanish as a translation.
+    defaultLocale: "en",
+    locales: [
+      { path: "en", codes: ["en-US", "en"] },
+      { path: "es", codes: ["es-ES", "es"] },
+    ],
+  },
   integrations: [
     starlight({
       title: "Helix",

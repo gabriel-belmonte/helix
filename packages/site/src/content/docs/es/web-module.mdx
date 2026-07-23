@@ -1,0 +1,59 @@
+---
+title: El módulo web
+description: web_search + web_extract — granular, opt-in, auto-hospedado.
+sidebar:
+  order: 2
+---
+
+# El módulo web
+
+La capacidad web **no es una sola tool** — es un grupo de dos módulos granulares,
+independientemente activables. Cada uno está desactivado por defecto.
+
+| Módulo | Tool name | Backend | Flag |
+|--------|-----------|---------|------|
+| Search | `web_search` | SearXNG (auto-hospedado) | `--web-search` |
+| Extract | `web_extract` | Servidor compatible Firecrawl | `--web-extract` |
+| Ambos | — | — | `--web` |
+
+## ¿Por qué dividir?
+
+Para que un usuario pueda:
+
+- activar **solo búsqueda** (no necesita servidor Python), o
+- activar **solo extracción** (no necesita Docker), o
+- **reemplazar solo una pieza** con su propia implementación vía un plugin
+  (p.ej. cambiar `web_search` por una tool basada en Exa/Brave/Tavily) sin
+  tocar la otra.
+
+## Cómo está cableado
+
+`helix-core` resuelve el conjunto de tools activo desde la config:
+
+```ts
+const web = config.web ?? {};
+if (web.search)  registry.register(createWebSearchTool(config.infra));
+if (web.extract) registry.register(createWebExtractTool(config.infra));
+```
+
+Si el backend local no está corriendo, cada módulo lo provisiona
+perezosamente en el primer uso (ver [Infra auto-provisionada](/helix/self-provisioning/)).
+
+## `web_search`
+
+```ts
+web_search({ q: "rust async runtime", limit: 10 })
+// → { query, results: [{ title, url, content }] }
+```
+
+## `web_extract`
+
+```ts
+web_extract({ url: "https://example.com" })
+// → { url, success, markdown, title }
+```
+
+Ambos son tools planas `{ name, description, run }` — la misma forma que
+cualquier built-in o plugin. Esa uniformidad es lo que los hace reemplazables.
+
+➡️ Siguiente: [Infra auto-provisionada](/helix/self-provisioning/)

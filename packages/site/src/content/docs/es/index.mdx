@@ -1,0 +1,60 @@
+---
+title: Introducción
+description: Qué es Helix hoy — un framework de agentes TypeScript modular y transparente.
+sidebar:
+  order: 1
+slug: introduction
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+# Helix
+
+**Helix es un framework de agentes TypeScript minimalista y transparente** — un
+motor que puedes leer de verdad, más un ecosistema modular en crecimiento donde
+cada capacidad (búsqueda, extracción, shell, archivos…) es un módulo
+intercambiable.
+
+Empezó como un motor de ~300 LOC + un CLI `curl | sh`. Desde entonces ha
+crecido en un monorepo con una **fuente única de verdad** (`helix-core`) que
+comparte cada superficie (CLI, futura TUI, web UI, Dashboard, Desktop) — y un
+**sistema de plugins** para que puedas reemplazar o añadir cualquier módulo sin
+hacer fork.
+
+<CardGrid>
+  <Card title="Fuente única" icon="approve-check">
+    `helix-core` contiene el runtime del agente, el registro de tools, el
+    sistema de plugins y el schema de config. CLI, TUI y web UI son adaptadores
+    finos encima.
+  </Card>
+  <Card title="Modular y opt-in" icon="puzzle">
+    Funciones como web se dividen en módulos granulares e independientes
+    (`web_search`, `web_extract`). Desactivadas por defecto.
+  </Card>
+  <Card title="Auto-provisionado" icon="rocket">
+    Activa web y Helix arranca su propia infra local (SearXNG vía Docker, un
+    servidor compatible con Firecrawl vía Python) — cero configuración.
+  </Card>
+  <Card title="Reemplazable" icon="setting">
+    Un plugin puede sobreescribir cualquier módulo integrado (p.ej. cambiar
+    SearXNG por tu API) con una sola llamada `ctx.overrideTool(...)`.
+  </Card>
+</CardGrid>
+
+## Paquetes
+
+| Paquete | Rol |
+|---------|------|
+| `helix-agent` | El motor puro: bucle del agente, dispatch de tools, parsers de formato. |
+| `helix-core` | **Fuente única de verdad** — runtime, registro, plugins, config. |
+| `helix-agent-cli` | Agente de terminal (`helix …`), binario nativo. |
+| `helix-agent-eval` | Detección de regresiones de calidad / coste / latencia. |
+| `helix-site` | Este sitio + docs (Astro + Starlight). |
+
+## Filosofía
+
+- **Legible antes que ingenioso.** Sin 40 clases abstractas, sin magia oculta.
+- **Trae tu propio LLM.** Cualquier provider tras `complete(messages)` funciona.
+- **Módulos que controlas.** Activa/desactiva funciones; cámbialas por las tuyas.
+
+➡️ Siguiente: [Inicio rápido](/helix/quickstart/)

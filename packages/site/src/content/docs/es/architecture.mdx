@@ -1,0 +1,57 @@
+---
+title: Arquitectura
+description: Cómo está estructurado Helix — un core, muchas superficies finas.
+sidebar:
+  order: 1
+---
+
+# Arquitectura
+
+Helix sigue un diseño de **fuente única de verdad**: un paquete posee el runtime
+y cada superficie es un adaptador fino.
+
+```text
+packages/
+  core/        ← ÚNICA FUENTE (helix-core)
+    src/registry.ts     ToolRegistry + PluginSystem + schema de config
+    src/builtins.ts     read_file, write_file, list_dir, run_bash, search_files
+    src/web_search.ts   createWebSearchTool()  (opt-in, SearXNG)
+    src/web_extract.ts  createWebExtractTool() (opt-in, compatible Firecrawl)
+    src/web-infra.ts    ensureSearch() / ensureExtract() — auto-provisionado
+    src/agent.ts        buildAgent(config, plugins) — compartido por todas las superficies
+  cli/         ← superficie fina (importa core)
+  agent/       ← el motor puro (helix-agent)
+  eval/        ← calidad/coste regresión
+  site/        ← este sitio + docs
+  (tui/ web/ desktop/ ← futuras superficies, todas consumen core)
+```
+
+## Responsabilidades de core
+
+- **Registro de tools** — un `Map<name, Tool>` plano. Los built-ins se
+  registran primero, luego los módulos de funciones, luego los plugins. Los
+  plugins pueden sobreescribir un nombre.
+- **Sistema de plugins** — un plugin es `{ name, register(ctx) }`. `ctx` expone
+  `registry`, `config` y `overrideTool(tool)`.
+- **Schema de config** — un objeto plano, nunca magia por env:
+
+  ```ts
+  type HelixConfig = {
+    web?: { search?: boolean; extract?: boolean };
+    features?: Record<string, boolean>;
+    infra?: { searxngUrl?: string; firecrawlUrl?: string };
+  };
+  ```
+
+- **Builder de agente compartido** — `buildAgent(llm, { config, plugins })`
+  ensambla el conjunto de tools y el system prompt idéntico para cada
+  superficie. CLI, TUI y web UI llaman a la misma función, así el comportamiento
+  nunca diverge.
+
+## Por qué esta forma
+
+Porque lo dijiste mejor tú: *"una sola fuente para CLI, TUI, web, Dashboard y
+Desktop"*. Separar el runtime en `helix-core` significa que un bug arreglado (o
+un módulo añadido) en un sitio beneficia a todas las superficies a la vez.
+
+➡️ Siguiente: [El módulo web](/helix/web-module/)

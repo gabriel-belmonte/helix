@@ -1,0 +1,83 @@
+---
+title: Crea tu propio módulo
+description: Construye un módulo (grupo de tools) nuevo y expórtalo como plugin.
+sidebar:
+  order: 3
+---
+
+# Crea tu propio módulo
+
+Un "módulo" en Helix es simplemente **una o más tools** más (opcionalmente) la
+infra que necesita. Para añadir una capacidad entera — digamos un módulo
+`database` — no tocas core en absoluto. Escribes un plugin.
+
+## Anatomía de un plugin de módulo
+
+```ts
+import type { HelixPlugin } from "helix-core";
+
+export const databaseModule: HelixPlugin = {
+  name: "database",
+  register(ctx) {
+    ctx.registry.register({
+      name: "db_query",
+      description: "Ejecuta una consulta SQL de solo lectura contra la SQLite local.",
+      run: async (input: { sql: string }) => {
+        // ...tu implementación...
+        return { rows: [] };
+      },
+    });
+    ctx.registry.register({
+      name: "db_schema",
+      description: "Devuelve el schema de una tabla.",
+      run: async (input: { table: string }) => ({ columns: [] }),
+    });
+  },
+};
+```
+
+Añádelo a `buildAgent({ config, plugins: [databaseModule] })`. Listo — el agente
+ya puede llamar a `db_query` y `db_schema`.
+
+## Módulos que necesitan infra
+
+Si tu módulo necesita un servicio (como el módulo web necesita SearXNG), sigue
+el mismo patrón que `web-infra.ts`:
+
+1. **Health-check** del endpoint en el primer uso (perezoso, así el import es barato).
+2. **Provisiona** si falta (Docker, un proceso spawnado, etc.).
+3. **Espera** a listo, luego procede.
+4. **Nunca lances** por infra faltante — muestra un warning y degrada con gracia.
+
+```ts
+let ensured: Promise<void> | null = null;
+function ensureOnce() {
+  if (!ensured) ensured = ensureMyInfra().catch((e) => console.warn(`[mymod] ${e}`));
+  return ensured;
+}
+
+// dentro de run():
+await ensureOnce();
+// ...llama al servicio...
+```
+
+## Hazlo configurable
+
+Lee `ctx.config` para que los usuarios activen o apunten tu módulo a otro lado:
+
+```ts
+register(ctx) {
+  const cfg = ctx.config.features?.["database"];
+  if (!cfg) return;            // módulo off
+  const url = ctx.config.infra?.["dbUrl"] ?? "http://127.0.0.1:5432";
+  // ...
+}
+```
+
+## Publícalo
+
+Como un módulo es un `HelixPlugin` plano, puedes enviarlo como paquete npm y
+que los usuarios lo añadan a su array `plugins: [...]`. Helix sigue siendo la
+fuente única de verdad; tu módulo es una hoja.
+
+➡️ Volver a: [Sistema de plugins](/helix/plugins/)

@@ -1,0 +1,89 @@
+---
+title: Reemplazar un módulo
+description: Cambia un módulo integrado (p.ej. web_search) por tu propia implementación.
+sidebar:
+  order: 2
+---
+
+# Reemplazar un módulo
+
+Como cada built-in es solo una tool en el registro, reemplazarlo es de una
+línea en un plugin. El caso más común: cambiar el `web_search` auto-hospedado
+de Helix (SearXNG) por **tu propio backend de búsqueda** (Exa, Brave, Tavily,
+Google CSE, una API interna…).
+
+## Ejemplo: reemplazar `web_search` con una tool basada en Exa
+
+```ts
+import type { HelixPlugin } from "helix-core";
+
+const exaSearch: HelixPlugin = {
+  name: "exa-search",
+  register(ctx) {
+    ctx.overrideTool({
+      name: "web_search",
+      description: "Busca en la web vía la API de Exa.",
+      run: async (input: { q: string; limit?: number }) => {
+        const res = await fetch("https://api.exa.ai/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": process.env.EXA_API_KEY!,
+          },
+          body: JSON.stringify({ query: input.q, numResults: input.limit ?? 10 }),
+        });
+        const data = await res.json();
+        return {
+          query: input.q,
+          results: (data.results ?? []).map((r: any) => ({
+            title: r.title,
+            url: r.url,
+            content: (r.text ?? "").slice(0, 300),
+          })),
+        };
+      },
+    });
+  },
+};
+```
+
+Activa el grupo web de Helix (para que `web_search` lo registre el built-in),
+luego deja que el plugin lo sobreescriba:
+
+```ts
+const agent = await buildAgent(llm, {
+  config: { web: { search: true, extract: true } },
+  plugins: [exaSearch],
+});
+```
+
+El `web_search` del plugin gana; `web_extract` se queda con el built-in. **Sin
+fork, sin parche** — solo un plugin.
+
+## Reemplazar `web_extract` en su lugar
+
+Mismo patrón, nombre `"web_extract"`:
+
+```ts
+ctx.overrideTool({
+  name: "web_extract",
+  description: "Extrae vía mi Firecrawl hospedado",
+  run: async (input: { url: string }) => {
+    const res = await fetch("https://my-firecrawl.example/v1/scrape", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: input.url }),
+    });
+    const data = await res.json();
+    return { url: input.url, success: data.success, markdown: data.data?.markdown ?? "" };
+  },
+});
+```
+
+## Reemplazar un módulo built-in (no-web)
+
+El mismo `overrideTool` funciona para `read_file`, `run_bash`, etc. — cualquier
+tool es intercambiable. Úsalo con cuidado: esos son centrales para cómo opera
+el agente.
+
+➡️ Siguiente: [Crea tu propio módulo](/helix/write-module/)

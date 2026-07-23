@@ -1,0 +1,68 @@
+---
+title: Sistema de plugins
+description: Registra tools y hooks en Helix al arrancar.
+sidebar:
+  order: 1
+---
+
+# Sistema de plugins
+
+Un plugin de Helix es un objeto plano con una función `register`:
+
+```ts
+import type { HelixPlugin } from "helix-core";
+
+const myPlugin: HelixPlugin = {
+  name: "my-plugin",
+  register(ctx) {
+    // ctx.registry   — añadir/inspeccionar tools
+    // ctx.config     — la HelixConfig activa
+    // ctx.overrideTool(tool) — reemplazar un built-in por nombre
+    ctx.registry.register({
+      name: "ping",
+      description: "devuelve pong",
+      run: async () => ({ pong: true }),
+    });
+  },
+};
+```
+
+Pasa los plugins a `buildAgent`:
+
+```ts
+const agent = await buildAgent(llm, { config, plugins: [myPlugin] });
+```
+
+## Registrar una tool
+
+```ts
+ctx.registry.register({
+  name: "joke",
+  description: "devuelve una broma aleatoria",
+  run: async () => ({ joke: "¿Por qué el agente cruzó la calle? Para llamar a una tool." }),
+});
+```
+
+Registrar un nombre que ya existe **lanza error** — esto evita colisiones
+silenciosas. Para reemplazar intencionalmente un built-in, usa `overrideTool`.
+
+## Sobreescribir un built-in
+
+```ts
+ctx.overrideTool({
+  name: "web_search",          // mismo nombre que el built-in
+  description: "mi búsqueda custom",
+  run: async (input) => mySearchAPI(input.q),
+});
+```
+
+`overrideTool` intercambia la tool en el registro. Este es el mecanismo detrás
+de ["Reemplazar un módulo"](/helix/replace-module/).
+
+## Reglas de diseño
+
+- Los plugins son funciones planas — sin jerarquía de clases, sin DSL de manifest.
+- Se ejecutan una vez al arranque con el contexto vivo.
+- Pueden añadir tools, sobreescribir tools o leer config. Nada más.
+
+➡️ Siguiente: [Reemplazar un módulo](/helix/replace-module/)

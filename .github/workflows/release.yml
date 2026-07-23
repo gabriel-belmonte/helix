@@ -22,6 +22,7 @@ jobs:
         with:
           bun-version: latest
       - run: npm install
+      - run: npm install @rollup/rollup-linux-x64-gnu --save-optional
 
       - name: Build engine
         run: npm run build:agent

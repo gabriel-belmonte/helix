@@ -29,6 +29,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - run: npm install @rollup/rollup-linux-x64-gnu --save-optional
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:

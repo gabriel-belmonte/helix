@@ -11,9 +11,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "extract-server"],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node -e \"require('fs').cpSync('extract-server','dist/extract-server',{recursive:true})\"",
     "test": "tsx --test test/*.test.ts",
     "clean": "rm -rf dist"
   },

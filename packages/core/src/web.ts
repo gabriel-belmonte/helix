@@ -1,12 +1,13 @@
 // Web tool — OPT-IN feature. Only included when config.web === true.
 //
-// Search  -> SearXNG  (self-hosted, free, http://127.0.0.1:8888)
-// Extract -> Firecrawl (self-hosted local, trafilatura, http://127.0.0.1:8787)
+// Search  -> SearXNG  (self-hosted, free)
+// Extract -> Firecrawl (self-hosted local)
 //
-// Both are loopback-only, no API keys. If an endpoint is down the tool returns
-// a clear error instead of throwing.
+// If the local infra is not already running, `ensureWebInfra` brings it up via
+// Docker so the tool works zero-config. Both are loopback-only.
 
 import { defineTool } from "helix-agent";
+import { ensureWebInfra, type WebInfraConfig } from "./web-infra.js";
 
 export type InfraEndpoints = {
   searxngUrl: string;
@@ -19,21 +20,42 @@ async function fetchJson(url: string, init?: RequestInit): Promise<any> {
   return res.json();
 }
 
-export function createWebTool(infra?: Partial<InfraEndpoints>) {
+export function createWebTool(infra?: Partial<InfraEndpoints> & WebInfraConfig) {
   const searxngUrl = infra?.searxngUrl || "http://127.0.0.1:8888";
   const firecrawlUrl = infra?.firecrawlUrl || "http://127.0.0.1:8787";
 
+  // Lazily ensure infra on first real use (so importing the tool is cheap).
+  let ensured: Promise<void> | null = null;
+  function ensureOnce() {
+    if (!ensured) {
+      ensured = ensureWebInfra({
+        searxngUrl,
+        firecrawlUrl,
+        searxngImage: infra?.searxngImage,
+      }).then((st) => {
+        if (st.error) {
+          // Non-fatal: surface via the tool result, don't crash import.
+          console.warn(`[web] infra warning: ${st.error}`);
+        }
+      });
+    }
+    return ensured;
+  }
+
   return defineTool(
     "web",
-    `Search the web or extract a URL's content. No API key — uses self-hosted infra.
+    `Search the web or extract a URL's content. Self-hosted, zero-config: if
+SearXNG/Firecrawl aren't running locally, Helix starts them via Docker.
 Input: { q?: string, url?: string, formats?: string[] }
 - To SEARCH:  provide q (e.g. "helix agent framework"). Returns results via SearXNG.
-- To EXTRACT: provide url. Returns clean markdown via Firecrawl (local, trafilatura).
+- To EXTRACT: provide url. Returns clean markdown via Firecrawl.
 - formats: Firecrawl output formats (default ["markdown"]).
 Examples:
   web({ q: "rust async runtime" })
   web({ url: "https://example.com" })`,
     async (input: { q?: string; url?: string; formats?: string[] }) => {
+      await ensureOnce();
+
       if (input.url) {
         try {
           const body = JSON.stringify({

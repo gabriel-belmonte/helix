@@ -28,6 +28,7 @@ export default defineConfig({
           items: [
             { label: "Introduction", link: "/helix/introduction/" },
             { label: "Quick start", link: "/helix/quickstart/" },
+            { label: "Authentication & API keys", link: "/helix/authentication/" },
           ],
         },
         {

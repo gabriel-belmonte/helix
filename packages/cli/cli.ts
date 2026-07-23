@@ -3,7 +3,7 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { buildAgent } from "helix-core";
+import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH } from "helix-core";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -25,6 +25,10 @@ interface CliOpts {
   historyClear?: boolean;
   webSearch?: boolean;
   webExtract?: boolean;
+  auth?: boolean;
+  authAction?: "login" | "logout" | "list";
+  authProvider?: string;
+  authKey?: string;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -53,6 +57,24 @@ function parseArgs(argv: string[]): CliOpts {
       process.exit(0);
     }
     else if (a === "update") opts.update = true;
+    else if (a === "auth") {
+      opts.auth = true;
+      const sub = argv[++i];
+      if (sub === "login") {
+        opts.authAction = "login";
+        opts.authProvider = argv[++i];
+        // Optional inline key: `helix auth login zen <key>` (not recommended;
+        // prefer the hidden prompt). Also supports `--key <key>`.
+        const next = argv[i + 1];
+        if (next && next !== "--key" && !next.startsWith("-")) opts.authKey = argv[++i];
+        if (argv[i + 1] === "--key") { i++; opts.authKey = argv[++i]; }
+      } else if (sub === "logout") {
+        opts.authAction = "logout";
+        opts.authProvider = argv[++i];
+      } else if (sub === "list" || sub === "ls" || sub === undefined) {
+        opts.authAction = "list";
+      }
+    }
     else if (a === "history" && argv[i + 1] === "clear") {
       opts.historyClear = true;
       i++; // skip "clear"
@@ -74,6 +96,9 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
+  console.log(`  ${chalk.cyan("helix auth login <provider>")} store an API key (hidden prompt)`);
+  console.log(`  ${chalk.cyan("helix auth list")}              show configured keys (masked)`);
+  console.log(`  ${chalk.cyan("helix auth logout <provider>")} remove a stored key`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
   console.log(`  ${chalk.cyan("helix --web -p \"...\"")}        enable web_search + web_extract (self-hosted)`);
@@ -98,8 +123,92 @@ function printHelp() {
   console.log(`  ${chalk.gray("$")} helix -p "refactor utils.ts to async/await"`);
   console.log(`  ${chalk.gray("$")} helix -v -p "list files in src/"\n`);
 
-  console.log(chalk.gray("NOTE: API keys are still read from ENV vars (never stored in config)."));
-  console.log(chalk.gray("      config holds only provider + model choice."));
+  console.log(chalk.gray("NOTE: API keys resolve as env var > ~/.helix/auth.json (chmod 600)."));
+  console.log(chalk.gray("      Store one with `helix auth login <provider>`; env vars always win."));
+}
+
+// Read a line from stdin without echoing it (for secret entry).
+async function promptHidden(question: string): Promise<string> {
+  const rl = readline.createInterface({ input, output });
+  const rlAny = rl as any;
+  let armed = false;
+  // Suppress echo: after the question is printed, mask everything typed.
+  rlAny._writeToOutput = (str: string) => {
+    if (!armed) {
+      output.write(str);
+      if (str.includes(question)) armed = true;
+      return;
+    }
+    // Only emit newlines while armed (so Enter still moves the cursor).
+    if (str === "\n" || str === "\r\n") output.write(str);
+  };
+  const answer = await rl.question(question);
+  rl.close();
+  output.write("\n");
+  return answer;
+}
+
+async function handleAuth(opts: CliOpts) {
+  if (opts.authAction === "list") {
+    console.log(chalk.gray(`auth: ${AUTH_PATH} (chmod 600)\n`));
+    const creds = listCredentials();
+    for (const c of creds) {
+      const mark = c.configured ? chalk.green("●") : chalk.gray("○");
+      const src = c.fromEnv
+        ? chalk.yellow(c.source) + chalk.gray(" (env wins)")
+        : c.source === "(none)"
+          ? chalk.gray("(not set)")
+          : chalk.cyan(c.source);
+      const fp = c.fingerprint ? chalk.gray(` ${c.fingerprint}`) : "";
+      console.log(`  ${mark} ${chalk.bold(c.provider.padEnd(11))} ${src}${fp}`);
+    }
+    console.log(chalk.gray("\n  ● configured   ○ not set"));
+    console.log(chalk.gray("  env vars always take precedence over stored keys."));
+    return;
+  }
+
+  if (opts.authAction === "logout") {
+    const provider = opts.authProvider;
+    if (!provider) {
+      console.error(chalk.red("✗") + " usage: helix auth logout <provider>");
+      process.exit(1);
+    }
+    const removed = removeKey(provider);
+    if (removed) console.log(chalk.green("✓") + ` removed stored key for ${chalk.cyan(provider)}`);
+    else console.log(chalk.gray(`no stored key for ${provider}`));
+    return;
+  }
+
+  if (opts.authAction === "login") {
+    const provider = opts.authProvider;
+    if (!provider) {
+      console.error(chalk.red("✗") + " usage: helix auth login <provider>");
+      console.error(chalk.gray("  providers: " + Object.keys(PROVIDER_ENV).join(", ")));
+      process.exit(1);
+    }
+    if (!PROVIDER_ENV[provider]) {
+      console.log(chalk.yellow("!") + ` unknown provider "${provider}" — storing anyway.`);
+      console.log(chalk.gray("  known: " + Object.keys(PROVIDER_ENV).join(", ")));
+    }
+    let key = opts.authKey;
+    if (!key) {
+      key = (await promptHidden(chalk.cyan(`Paste ${provider} API key: `))).trim();
+    }
+    if (!key) {
+      console.error(chalk.red("✗") + " no key provided");
+      process.exit(1);
+    }
+    setKey(provider, key);
+    console.log(
+      chalk.green("✓") +
+        ` stored ${chalk.cyan(provider)} key (${chalk.gray(maskSecret(key))}) in ${chalk.gray(AUTH_PATH)}`
+    );
+    const envName = PROVIDER_ENV[provider];
+    if (envName && process.env[envName]) {
+      console.log(chalk.yellow("!") + ` note: ${envName} is set in your env and will take precedence.`);
+    }
+    return;
+  }
 }
 
 function printConfig(cfg: HelixConfig, key?: string) {
@@ -120,6 +229,12 @@ async function main() {
   // Update subcommand
   if (opts.update) {
     await runUpdate();
+    return;
+  }
+
+  // Auth subcommand
+  if (opts.auth) {
+    await handleAuth(opts);
     return;
   }
 

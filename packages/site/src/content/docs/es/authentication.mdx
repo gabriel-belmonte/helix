@@ -1,0 +1,98 @@
+---
+title: Autenticación y API keys
+description: Dónde guarda Helix las API keys, cómo se resuelven y los valores seguros por defecto.
+sidebar:
+  order: 3
+---
+
+# Autenticación y API keys
+
+Helix sigue el mismo patrón que Hermes, OpenCode, Codex y Claude Code:
+**JSON plano en tu directorio home, bloqueado con `chmod 600`, separado de la
+configuración no secreta** — más overrides por variable de entorno para CI/contenedores.
+
+## Dónde viven las keys
+
+| Archivo | Contenido | Permisos |
+|---------|-----------|----------|
+| `~/.helix/config.json` | provider, model, base URLs — **sin secretos** | 644 |
+| `~/.helix/auth.json` | API keys / credenciales | **600** (solo dueño) |
+
+Separarlos significa que puedes commitear o compartir tu config sin filtrar nunca una key.
+
+## Orden de resolución
+
+Para cada provider, Helix resuelve la key en este orden (la primera vale):
+
+1. **Variable de entorno** (p.ej. `OPENCODE_ZEN_API_KEY`) — CI / contenedores
+2. **`~/.helix/auth.json`** credencial guardada — `helix auth login`
+
+Una variable de entorno **siempre gana** a una key guardada, así un despliegue
+puede sobreescribir una key local sin tocar archivos.
+
+| Provider | Variable de entorno |
+|----------|---------------------|
+| `zen` (OpenCode Zen) | `OPENCODE_ZEN_API_KEY` |
+| `openai` | `OPENAI_API_KEY` |
+| `anthropic` | `ANTHROPIC_API_KEY` |
+| `openrouter` | `OPENROUTER_API_KEY` |
+| `hf` (HuggingFace) | `HF_TOKEN` |
+
+## Comandos
+
+```bash
+# Guardar una key (prompt oculto — no se muestra nada):
+helix auth login zen
+
+# Ver qué hay configurado (las keys están enmascaradas; solo se muestra un fingerprint sha256):
+helix auth list
+
+# Borrar una key guardada:
+helix auth logout zen
+```
+
+Ejemplo de `helix auth list`:
+
+```text
+auth: ~/.helix/auth.json (chmod 600)
+
+  ○ anthropic   (not set)
+  ○ hf          (not set)
+  ○ openai      (not set)
+  ○ openrouter  (not set)
+  ● zen         stored sha256:cce3c10007d6
+
+  ● configured   ○ not set
+```
+
+El **fingerprint** (`sha256:…`) te permite confirmar *qué* key está guardada y
+detectar rotación — sin imprimir nunca el secreto.
+
+## Nunca hardcodees secretos: `{env:}` / `{file:}`
+
+Como OpenCode, Helix soporta sustitución en strings de config para que los
+usuarios avanzados referencien secretos en vez de pegarlos:
+
+```jsonc
+{
+  "provider": "zen",
+  "model": "{env:HELIX_MODEL}",
+  "apiKey": "{file:~/.secrets/zen.key}"
+}
+```
+
+- `{env:VAR}` → se reemplaza con una variable de entorno (string vacío si no existe)
+- `{file:path}` → se reemplaza con el contenido limpio de un archivo (`~` se expande)
+
+## ¿Por qué no cifrado en reposo?
+
+En una máquina local, cualquier clave de descifrado tendría que vivir al lado
+del ciphertext (legible por el mismo usuario). Eso añade fricción sin añadir
+seguridad real — por eso Hermes, OpenCode, Codex y Claude Code usan archivos
+`chmod 600` en vez de cifrar en reposo.
+
+Para equipos que lo necesiten, el límite correcto es el **OS keychain**
+(macOS Keychain, libsecret, Windows Credential Manager) — un opt-in planeado
+para Helix, no un valor por defecto.
+
+➡️ Volver a: [Inicio rápido](/helix/quickstart/)

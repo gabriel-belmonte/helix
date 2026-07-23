@@ -1,33 +1,38 @@
 // Shared LLM provider loader — used by every Helix surface (CLI, TUI, web…).
 // Pure logic, no UI deps (no chalk) so helix-core stays surface-agnostic.
 //
-// Resolution order (env var OR ~/.helix/config.json):
-//   OPENAI_API_KEY        → OpenAI
-//   ANTHROPIC_API_KEY     → Anthropic
-//   OPENROUTER_API_KEY    → OpenRouter
-//   HF_TOKEN              → HuggingFace Inference Providers
-//   OPENCODE_ZEN_API_KEY  → OpenCode Zen
-//   LLM_API_KEY+LLM_BASE_URL → generic OpenAI-compatible
+// Key resolution (per provider) is delegated to auth.ts resolveKey():
+//   env var  >  ~/.helix/auth.json stored credential
+// So `helix auth login` persists a key, but an env var always wins (CI-safe).
 
 import { scriptedLLM, type LLMProvider } from "helix-agent";
 import { vercelStreamingProvider } from "helix-agent/vercel";
+import { resolveKey } from "./auth.js";
 
 type ProviderConfig = {
-  provider?: "zen" | "hf" | "openrouter" | "openai";
+  provider?: "zen" | "hf" | "openrouter" | "openai" | "anthropic";
   model?: string;
   zenBaseUrl?: string;
   hfBaseUrl?: string;
 };
 
 function resolveConfig(): ProviderConfig {
-  // Subclasses/surfaces may pass a config; here we only read env. The CLI
-  // merges ~/.helix/config.json before calling. Kept minimal on purpose.
   return {
+    provider: process.env.HELIX_PROVIDER as ProviderConfig["provider"],
     model: process.env.HELIX_MODEL,
     zenBaseUrl: process.env.OPENCODE_ZEN_BASE_URL,
     hfBaseUrl: process.env.HF_BASE_URL,
   };
 }
+
+// Default model per provider.
+const DEFAULT_MODEL: Record<string, string> = {
+  openai: "gpt-4o-mini",
+  anthropic: "claude-sonnet-4-20250514",
+  openrouter: "cohere/north-mini-code:free",
+  hf: "Qwen/Qwen3-Coder-Next",
+  zen: "big-pickle",
+};
 
 export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   if (opts.scripted) {
@@ -39,53 +44,59 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
 
   const cfg = resolveConfig();
 
-  const openaiKey = process.env.OPENAI_API_KEY;
+  // OpenAI
+  const openaiKey = resolveKey("openai");
   if (openaiKey) {
     return vercelStreamingProvider({
-      model: createOpenAIModel(openaiKey, cfg.model ?? "gpt-4o-mini"),
+      model: createOpenAIModel(openaiKey, cfg.model ?? DEFAULT_MODEL.openai),
     });
   }
 
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  // Anthropic
+  const anthropicKey = resolveKey("anthropic");
   if (anthropicKey) {
     return vercelStreamingProvider({
-      model: createAnthropicModel(anthropicKey, cfg.model ?? "claude-sonnet-4-20250514"),
+      model: createAnthropicModel(anthropicKey, cfg.model ?? DEFAULT_MODEL.anthropic),
     });
   }
 
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
+  // OpenRouter (OpenAI SDK w/ custom base URL)
+  const openrouterKey = resolveKey("openrouter");
   if (openrouterKey) {
     return vercelStreamingProvider({
       model: createOpenAIModel(
         openrouterKey,
-        cfg.model ?? "cohere/north-mini-code:free",
+        cfg.model ?? DEFAULT_MODEL.openrouter,
         "https://openrouter.ai/api/v1"
       ),
     });
   }
 
-  const hfToken = process.env.HF_TOKEN;
+  // HuggingFace Inference Providers
+  const hfToken = resolveKey("hf");
   if (hfToken) {
     return vercelStreamingProvider({
       model: createOpenAIModel(
         hfToken,
-        cfg.model ?? "Qwen/Qwen3-Coder-Next",
-        "https://router.huggingface.co/v1"
+        cfg.model ?? DEFAULT_MODEL.hf,
+        cfg.hfBaseUrl ?? "https://router.huggingface.co/v1"
       ),
     });
   }
 
-  const zenKey = process.env.OPENCODE_ZEN_API_KEY ?? process.env.OPENCODE_ZEN_KEY;
+  // OpenCode Zen
+  const zenKey = resolveKey("zen");
   if (zenKey) {
     return vercelStreamingProvider({
       model: createOpenAIModel(
         zenKey,
-        cfg.model ?? "big-pickle",
+        cfg.model ?? DEFAULT_MODEL.zen,
         cfg.zenBaseUrl ?? "https://opencode.ai/zen/v1"
       ),
     });
   }
 
+  // Generic OpenAI-compatible endpoint
   const customKey = process.env.LLM_API_KEY;
   const customUrl = process.env.LLM_BASE_URL;
   if (customKey && customUrl) {
@@ -95,7 +106,8 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   }
 
   throw new Error(
-    "No LLM provider configured. Set one of:\n" +
+    "No LLM provider configured. Set a key via `helix auth login <provider>` " +
+      "or an env var:\n" +
       "  OPENAI_API_KEY        -> OpenAI\n" +
       "  ANTHROPIC_API_KEY     -> Anthropic\n" +
       "  OPENROUTER_API_KEY    -> OpenRouter\n" +

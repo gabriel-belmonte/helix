@@ -1,0 +1,99 @@
+---
+title: Authentication & API keys
+description: Where Helix stores API keys, how resolution works, and the secure defaults.
+sidebar:
+  order: 3
+---
+
+# Authentication & API keys
+
+Helix follows the same pattern used by Hermes, OpenCode, Codex and Claude Code:
+**plain JSON in your home directory, locked to `chmod 600`, kept separate from
+non-secret config** — plus environment-variable overrides for CI/containers.
+
+## Where keys live
+
+| File | Contents | Perms |
+|------|----------|-------|
+| `~/.helix/config.json` | provider, model, base URLs — **no secrets** | 644 |
+| `~/.helix/auth.json` | API keys / credentials | **600** (owner only) |
+
+Splitting them means you can safely commit or share your config without ever
+leaking a key.
+
+## Resolution order
+
+For each provider, Helix resolves the key in this order (first hit wins):
+
+1. **Environment variable** (e.g. `OPENCODE_ZEN_API_KEY`) — CI / containers
+2. **`~/.helix/auth.json`** stored credential — `helix auth login`
+
+An env var **always beats** a stored key, so a deployment can override a local
+key without editing files.
+
+| Provider | Env var |
+|----------|---------|
+| `zen` (OpenCode Zen) | `OPENCODE_ZEN_API_KEY` |
+| `openai` | `OPENAI_API_KEY` |
+| `anthropic` | `ANTHROPIC_API_KEY` |
+| `openrouter` | `OPENROUTER_API_KEY` |
+| `hf` (HuggingFace) | `HF_TOKEN` |
+
+## Commands
+
+```bash
+# Store a key (hidden prompt — nothing is echoed):
+helix auth login zen
+
+# See what's configured (keys are masked; only a sha256 fingerprint is shown):
+helix auth list
+
+# Remove a stored key:
+helix auth logout zen
+```
+
+Example `helix auth list`:
+
+```text
+auth: ~/.helix/auth.json (chmod 600)
+
+  ○ anthropic   (not set)
+  ○ hf          (not set)
+  ○ openai      (not set)
+  ○ openrouter  (not set)
+  ● zen         stored sha256:cce3c10007d6
+
+  ● configured   ○ not set
+```
+
+The **fingerprint** (`sha256:…`) lets you confirm *which* key is stored and
+detect rotation — without ever printing the secret.
+
+## Never hardcode secrets: `{env:}` / `{file:}`
+
+Like OpenCode, Helix supports substitution in config strings so power users can
+reference secrets instead of pasting them:
+
+```jsonc
+{
+  "provider": "zen",
+  "model": "{env:HELIX_MODEL}",
+  "apiKey": "{file:~/.secrets/zen.key}"
+}
+```
+
+- `{env:VAR}` → replaced with an environment variable (empty string if unset)
+- `{file:path}` → replaced with the trimmed contents of a file (`~` expands)
+
+## Why no at-rest encryption?
+
+On a local machine, any decryption key would have to live next to the
+ciphertext (readable by the same user). That adds friction without adding real
+security — which is why Hermes, OpenCode, Codex and Claude Code all use
+`chmod 600` files rather than encrypting at rest.
+
+For teams that need more, the right boundary is the **OS keychain**
+(macOS Keychain, libsecret, Windows Credential Manager) — a planned opt-in for
+Helix, not a default.
+
+➡️ Back to: [Quick start](/helix/quickstart/)

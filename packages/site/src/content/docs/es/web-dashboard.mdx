@@ -29,6 +29,18 @@ partes.
 
 ## Ejecutarlo
 
+La forma más rápida — desde la CLI:
+
+```bash
+helix dashboard    # lanza el Dashboard web en http://localhost:8799
+```
+
+`helix dashboard` arranca el server del workspace automáticamente (cuando se
+ejecuta desde un checkout con código fuente y Bun). En un binario standalone
+imprime el comando de Docker en su lugar.
+
+O ejecútalo manualmente:
+
 ```bash
 cd packages/web
 bun install
@@ -44,9 +56,35 @@ bun run start    # sirve UI + API en :8799
 
 Luego abre http://localhost:8799.
 
+Con Docker (un comando, persiste tu config en un volumen):
+
+```bash
+docker compose up     # sirve http://localhost:8799, monta ~/.helix
+```
+
 > **Nota de puerto:** el `:8787` lo usa el Firecrawl local de Hermes en esta
 > máquina, así que el dashboard de Helix usa `:8799` por defecto. Override con
 > `PORT=... bun run start`.
+
+## Configura tu API key desde la web
+
+**No** necesitas un provider configurado para abrir el Dashboard — arranca en
+**modo demo** (un agente scripted) hasta que se setea una key. Para añadir tu
+key:
+
+1. Abre la sección **API Keys**.
+2. Escribe el provider (ej. `zen`) y tu API key (el campo es `password`,
+   enmascarado).
+3. Clic en **Save**. La key se escribe en `~/.helix/auth.json` (chmod 600).
+
+El indicador de **Status** cambia de `○ not set` a `● set` al instante, y la
+sección **Chat** ahora habla con el modelo real. Las env vars
+(`OPENCODE_ZEN_API_KEY`, etc.) siempre tienen prioridad sobre las keys
+guardadas.
+
+Este es el mismo flujo que usa la CLI — `helix auth login <provider>` escribe
+el archivo idéntico — así que una key añadida en la web es visible en
+`helix status` en la terminal, y viceversa.
 
 ## Arquitectura
 

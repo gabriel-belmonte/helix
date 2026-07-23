@@ -16,6 +16,7 @@ import { stdin as input, stdout as output } from "node:process";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
+import { spawn } from "node:child_process";
 
 interface CliOpts {
   prompt?: string;
@@ -44,6 +45,7 @@ interface CliOpts {
   evalJudge?: string;
   version?: boolean;
   status?: boolean;
+  dashboard?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -55,6 +57,7 @@ function parseArgs(argv: string[]): CliOpts {
     else if (a === "-v" || a === "--verbose") opts.verbose = true;
     else if (a === "-V" || a === "--version") opts.version = true;
     else if (a === "status") opts.status = true;
+    else if (a === "dashboard") opts.dashboard = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
     else if (a === "config") {
       opts.config = true;
@@ -136,6 +139,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
   console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
   console.log(`  ${chalk.cyan("helix status")}              show provider, model and API-key status`);
+  console.log(`  ${chalk.cyan("helix dashboard")}           launch the web Dashboard on :8799`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
@@ -378,6 +382,39 @@ function printStatus(cfg: HelixConfig) {
   console.log(chalk.gray("  env vars take precedence over stored keys."));
 }
 
+// Launch the Helix Dashboard (web control panel) on :8799.
+// In a dev checkout it spawns the workspace server with Bun; in a standalone
+// binary (or when Bun isn't available) it prints the Docker / compose command.
+function runDashboard() {
+  const PORT = process.env.PORT ?? "8799";
+  // Candidate locations for the dashboard server entry, relative to this CLI.
+  const here = import.meta.dirname ?? ".";
+  const candidates = [
+    join(here, "../web/server/index.ts"), // dev: packages/cli -> packages/web
+    "/app/packages/web/server/index.ts", // docker cli image (if web mounted)
+  ];
+  const server = candidates.find((c) => existsSync(c));
+  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+
+  if (server && bun) {
+    console.log(chalk.green("✓") + ` launching Helix Dashboard on http://localhost:${PORT}`);
+    console.log(chalk.gray("  (Ctrl+C to stop)\n"));
+    const child = spawn(bun, [server], {
+      stdio: "inherit",
+      env: { ...process.env, PORT },
+    });
+    child.on("exit", (code) => process.exit(code ?? 0));
+    return;
+  }
+
+  // Fallback: standalone binary or no Bun — point to the containerized dashboard.
+  console.log(chalk.yellow("!") + " Helix Dashboard needs the web package or Docker.");
+  console.log(chalk.gray("  Run it with Docker Compose:"));
+  console.log(`    ${chalk.cyan("docker compose up")}   # serves http://localhost:${PORT}`);
+  console.log(chalk.gray("  Or, from a source checkout:"));
+  console.log(`    ${chalk.cyan("bun run server/index.ts")}  # in packages/web`);
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -390,6 +427,12 @@ async function main() {
   // Status: active provider/model + which API keys are configured.
   if (opts.status) {
     printStatus(loadConfig());
+    return;
+  }
+
+  // Dashboard: launch the web control panel.
+  if (opts.dashboard) {
+    runDashboard();
     return;
   }
 

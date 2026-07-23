@@ -18,6 +18,13 @@ jobs:
         run: curl -fsSL https://bun.sh/install | bash
       - name: Add Bun to PATH
         run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
-      - run: bun install
-      - run: bunx turbo run build
-      - run: bunx turbo run test
+      - name: Install dependencies
+        run: bun install
+      # Build all packages (incl. the web dashboard, which needs the Rollup
+      # native binary for this platform — declared in helix-web optionalDeps).
+      - name: Build
+        run: bunx turbo run build
+      # Run tests. The docs site (helix-site) has no tests and a heavy Astro
+      # build, so it is excluded from the test graph to keep CI fast.
+      - name: Test
+        run: bunx turbo run test --filter='!helix-site'

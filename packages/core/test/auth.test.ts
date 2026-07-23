@@ -1,5 +1,6 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert";
+import os from "node:os";
 import {
   setKey,
   resolveKey,
@@ -13,19 +14,24 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // Point auth at a temp HOME so we don't touch the real ~/.helix.
+// `helixDir()` resolves via os.homedir(), which does NOT reliably honor
+// process.env.HOME (and caches the result), so we override os.homedir() too.
 let tmp: string;
-const ORIG = process.env.HOME;
+const ORIG_HOME = process.env.HOME;
+const ORIG_HOMEDIR = os.homedir;
 
 beforeEach(() => {
   tmp = mkdtempSync("/tmp/helix-auth-");
   process.env.HOME = tmp;
+  os.homedir = () => tmp;
   delete process.env.OPENCODE_ZEN_API_KEY;
   delete process.env.OPENAI_API_KEY;
 });
 
 afterEach(() => {
   rmSync(tmp, { recursive: true, force: true });
-  process.env.HOME = ORIG;
+  process.env.HOME = ORIG_HOME;
+  os.homedir = ORIG_HOMEDIR;
 });
 
 test("setKey writes 0600 file with fingerprint; list never leaks the secret", () => {

@@ -27,7 +27,11 @@ import {
 } from "node:fs";
 
 export function helixDir(): string {
-  return join(homedir(), ".helix");
+  // Honor an explicit override (HELIX_HOME, then HOME) before falling back to
+  // the OS home directory. On POSIX, os.homedir() ignores $HOME, so we must
+  // check the env vars ourselves for tools/tests that redirect HOME.
+  const base = process.env.HELIX_HOME || process.env.HOME;
+  return join(base ?? homedir(), ".helix");
 }
 export function authPath(): string {
   return join(helixDir(), "auth.json");

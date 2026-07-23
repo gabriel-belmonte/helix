@@ -3,13 +3,19 @@ import { api } from "../api.js";
 
 const PROVIDERS = ["zen", "hf", "openrouter", "openai"];
 
+type ZenModel = { id: string; free: boolean; label: string; current: boolean };
+
 export function ConfigSection() {
   const [cfg, setCfg] = useState<any>({});
+  const [models, setModels] = useState<ZenModel[]>([]);
   const [saved, setSaved] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     api("/config").then(setCfg).catch((e) => setErr(String(e)));
+    api("/zen-models")
+      .then((d) => setModels(d.models ?? []))
+      .catch(() => {});
   }, []);
 
   async function save() {
@@ -40,11 +46,27 @@ export function ConfigSection() {
 
       <div className="field">
         <label>Model</label>
-        <input
-          value={cfg.model || ""}
-          placeholder="e.g. big-pickle / gpt-4o"
-          onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
-        />
+        {models.length ? (
+          <select value={cfg.model || ""} onChange={(e) => setCfg({ ...cfg, model: e.target.value })}>
+            <option value="">— select —</option>
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.id}{m.free ? " · FREE" : ""}{m.current ? " (current)" : ""}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            value={cfg.model || ""}
+            placeholder="e.g. big-pickle / gpt-4o"
+            onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
+          />
+        )}
+        {models.filter((m) => m.free).length > 0 && (
+          <span className="hint">
+            <span className="free-tag">FREE</span> {models.filter((m) => m.free).length} free models available
+          </span>
+        )}
       </div>
 
       <div className="field">

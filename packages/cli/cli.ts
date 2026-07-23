@@ -3,7 +3,7 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, type HelixPlugin } from "helix-core";
+import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, ZEN_MODELS, fetchZenModels, isFreeModel, type HelixPlugin } from "helix-core";
 import { makeMcpPlugin } from "helix-mcp";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
@@ -33,6 +33,9 @@ interface CliOpts {
   authAction?: "login" | "logout" | "list";
   authProvider?: string;
   authKey?: string;
+  modelsList?: boolean;
+  modelsSelect?: boolean;
+  modelsSet?: string;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -83,6 +86,17 @@ function parseArgs(argv: string[]): CliOpts {
       opts.historyClear = true;
       i++; // skip "clear"
     }
+    else if (a === "models") {
+      const sub = argv[i + 1];
+      if (sub === "select" || sub === "set") {
+        opts.modelsSelect = true;
+        if (sub === "set" && argv[i + 2] && !argv[i + 2].startsWith("-")) {
+          opts.modelsSet = argv[i + 2];
+        }
+      } else {
+        opts.modelsList = true;
+      }
+    }
     else if (a === "--web") opts.webSearch = opts.webExtract = true;
     else if (a === "--web-search") opts.webSearch = true;
     else if (a === "--web-extract") opts.webExtract = true;
@@ -105,6 +119,9 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix auth logout <provider>")} remove a stored key`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
+  console.log(`  ${chalk.cyan("helix models")}               list OpenCode Zen models (free highlighted)`);
+  console.log(`  ${chalk.cyan("helix models select")}       interactive model picker (saves to config)`);
+  console.log(`  ${chalk.cyan("helix models set <id>")}     set the model directly\n`);
   console.log(`  ${chalk.cyan("helix --web -p \"...\"")}        enable web_search + web_extract (self-hosted)`);
   console.log(`  ${chalk.cyan("helix --web-search -p \"...\"")}  enable only web_search`);
   console.log(`  ${chalk.cyan("helix --web-extract -p \"...\"")} enable only web_extract\n`);
@@ -215,6 +232,55 @@ async function handleAuth(opts: CliOpts) {
   }
 }
 
+async function handleModels(opts: CliOpts) {
+  // `helix models set <id>` — save directly without prompting.
+  if (opts.modelsSet) {
+    const cfg = loadConfig();
+    cfg.model = opts.modelsSet;
+    saveConfig(cfg);
+    console.log(chalk.green("✓") + ` saved ${chalk.cyan("model")} = ${chalk.cyan(opts.modelsSet)}`);
+    return;
+  }
+
+  // Fetch live catalog; fall back to curated list offline.
+  const models = await fetchZenModels().catch(() => ZEN_MODELS);
+  const current = loadConfig().model;
+
+  console.log(chalk.bold("OpenCode Zen models") + chalk.gray(` (${models.length} available)`));
+  console.log(chalk.gray("  free models are highlighted in green\n"));
+  models.forEach((m, i) => {
+    const tag = m.free ? chalk.green("FREE ") : chalk.gray("     ");
+    const marker = m.id === current ? chalk.yellow("→") : " ";
+    const name = m.free ? chalk.green(m.id) : m.id;
+    console.log(`  ${marker} ${String(i + 1).padStart(2)}. ${tag} ${name}`);
+  });
+
+  if (!opts.modelsSelect) return;
+
+  // Interactive picker.
+  const rl = readline.createInterface({ input, output });
+  const answer = (await rl.question(chalk.cyan("\nSelect model # (or name), empty to cancel: "))).trim();
+  rl.close();
+  if (!answer) return;
+
+  let chosen: string | undefined;
+  const asNum = Number(answer);
+  if (!Number.isNaN(asNum) && models[asNum - 1]) {
+    chosen = models[asNum - 1].id;
+  } else if (models.some((m) => m.id === answer)) {
+    chosen = answer;
+  }
+  if (!chosen) {
+    console.error(chalk.red("✗") + " invalid selection");
+    return;
+  }
+  const cfg = loadConfig();
+  cfg.model = chosen;
+  saveConfig(cfg);
+  const free = isFreeModel(chosen) ? chalk.green(" (free)") : "";
+  console.log(chalk.green("✓") + ` saved ${chalk.cyan("model")} = ${chalk.cyan(chosen)}${free}`);
+}
+
 function printConfig(cfg: HelixConfig, key?: string) {
   console.log(chalk.gray(`config: ${CONFIG_PATH}`));
   if (key) {
@@ -239,6 +305,12 @@ async function main() {
   // Auth subcommand
   if (opts.auth) {
     await handleAuth(opts);
+    return;
+  }
+
+  // Models subcommand (Zen catalog + picker)
+  if (opts.modelsList || opts.modelsSelect) {
+    await handleModels(opts);
     return;
   }
 

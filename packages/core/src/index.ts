@@ -11,3 +11,4 @@ export * from "./skill.js";
 export * from "./agent.js";
 export { makeMemoryTools, readSoul, JsonlMemoryStore } from "helix-memory";
 export type { MemoryStore, MemoryEntry, MemoryType } from "helix-memory";
+export * from "./zen.js";

@@ -16,7 +16,9 @@ state the CLI uses, so changes here are reflected everywhere.
 - **Chat** — talk to Helix live in the browser. Uses your configured provider
   (from `~/.helix/auth.json` or env). With no key set, it runs in **demo mode**
   (a scripted agent) so you can see the loop without any API key.
-- **Config** — provider, model, and base URLs (`~/.helix/config.json`).
+- **Config** — provider, model, and base URLs (`~/.helix/config.json`). The
+  **Model** field is a searchable dropdown of OpenCode Zen models, with
+  **free models highlighted in green** (Zen marks them with a `-free` suffix).
 - **API Keys** — list / add / remove keys (`~/.helix/auth.json`, chmod 600).
   Masked with a sha256 fingerprint; env vars still win.
 - **Skills** — skills discovered from `~/.helix/skills`, `./skills`,

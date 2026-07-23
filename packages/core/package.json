@@ -22,7 +22,10 @@
   "license": "MIT",
   "dependencies": {
     "helix-agent": "*",
-    "helix-memory": "*"
+    "helix-memory": "*",
+    "@ai-sdk/openai": "^1.3.0",
+    "@ai-sdk/anthropic": "^1.0.0",
+    "ai": "^4.3.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

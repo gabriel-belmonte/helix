@@ -1,19 +1,35 @@
 // helix-tui — an Ink-based terminal UI over helix-core.
 //
 // Thin surface: it calls the SAME buildAgent() the CLI uses, so behavior is
-// identical. Only the rendering differs — chat history, streaming output, and
-// a live tool-call indicator.
+// identical. Only the rendering differs — chat history, streaming output, a
+// live tool-call indicator, and a model picker (Ctrl+M).
 //
 // Input is built manually with useStdin/useInput (Ink 5 dropped <TextInput>);
 // this keeps the dependency surface to just ink + react.
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { render, Box, Text, useApp, useInput, useStdin } from "ink";
-import { buildAgent, loadProvider } from "helix-core";
+import { buildAgent, loadProvider, ZEN_MODELS, fetchZenModels, isFreeModel } from "helix-core";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
 type Msg = { role: "user" | "assistant" | "tool"; content: string };
 
-const HELP = "Type a message and press Enter. Ctrl+C to quit.";
+const HELP = "Type a message and press Enter. Ctrl+C to quit. Ctrl+M to pick a model.";
+const CONFIG_PATH = join(homedir(), ".helix", "config.json");
+
+function loadConfig(): { provider?: string; model?: string } {
+  try {
+    return existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, "utf8")) : {};
+  } catch {
+    return {};
+  }
+}
+function saveConfig(cfg: Record<string, unknown>) {
+  mkdirSync(join(homedir(), ".helix"), { recursive: true });
+  writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2) + "\n", "utf8");
+}
 
 // `--scripted` uses a deterministic fake LLM (for tests / demos).
 const SCRIPTED = process.argv.includes("--scripted");
@@ -27,7 +43,14 @@ function Chat() {
   const [busy, setBusy] = useState(true);
   const [tool, setTool] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [model, setModel] = useState(loadConfig().model ?? "big-pickle");
   const agentRef = useRef<any>(null);
+  const providerRef = useRef<any>(null);
+
+  // Model picker state
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [models, setModels] = useState<typeof ZEN_MODELS>(ZEN_MODELS);
+  const [pickIdx, setPickIdx] = useState(0);
 
   // Boot: load provider + build the agent once.
   useEffect(() => {
@@ -39,6 +62,10 @@ function Chat() {
           onToolCall: (name: string) => setTool(name),
         });
         agentRef.current = agent;
+        providerRef.current = llm;
+        // Load live model catalog (falls back to curated list).
+        const live = await fetchZenModels().catch(() => ZEN_MODELS);
+        setModels(live);
         setBusy(false);
       } catch (e: any) {
         setError(e.message ?? String(e));
@@ -52,6 +79,25 @@ function Chat() {
     (ch, key) => {
       if (key.ctrl && ch === "c") {
         exit();
+        return;
+      }
+      if (key.ctrl && (ch === "m" || ch === "M")) {
+        setPickerOpen((o) => !o);
+        return;
+      }
+      if (pickerOpen) {
+        if (key.upArrow) setPickIdx((i) => Math.max(0, i - 1));
+        else if (key.downArrow) setPickIdx((i) => Math.min(models.length - 1, i + 1));
+        else if (key.return) {
+          const chosen = models[pickIdx].id;
+          const cfg = loadConfig();
+          cfg.model = chosen;
+          saveConfig(cfg);
+          setModel(chosen);
+          setPickerOpen(false);
+        } else if (key.escape) {
+          setPickerOpen(false);
+        }
         return;
       }
       if (key.return) {
@@ -68,7 +114,7 @@ function Chat() {
         setInput((s) => s + ch);
       }
     },
-    { isActive: !busy }
+    { isActive: true }
   );
 
   // Enable raw mode so we get key-by-key input (guard: needs a real TTY).
@@ -129,14 +175,35 @@ function Chat() {
         {tool && <Text color="yellow">  ⚙ running {tool}…</Text>}
       </Box>
 
-      <Box marginTop={1}>
-        <Text color="magenta">❯ </Text>
-        {busy ? (
-          <Text dimColor>working…</Text>
-        ) : (
-          <Text>{input}</Text>
-        )}
-      </Box>
+      {pickerOpen ? (
+        <Box borderStyle="round" borderColor="magenta" paddingX={1} flexDirection="column" height={12}>
+          <Text color="magenta" bold>Zen models — ↑/↓ navigate, Enter select, Esc close</Text>
+          <Text color="green" dimColor>  (green = free)</Text>
+          {models.slice(Math.max(0, pickIdx - 4), pickIdx + 6).map((m, i) => {
+            const realIdx = Math.max(0, pickIdx - 4) + i;
+            const sel = realIdx === pickIdx;
+            const label = m.free ? <Text color="green">{m.id}</Text> : <Text>{m.id}</Text>;
+            return (
+              <Box key={m.id}>
+                <Text color={sel ? "magenta" : "gray"}>{sel ? "▶ " : "  "}</Text>
+                {label}
+                {m.id === model && <Text color="yellow">  (current)</Text>}
+              </Box>
+            );
+          })}
+        </Box>
+      ) : (
+        <Box marginTop={1}>
+          <Text color="gray">model: </Text>
+          <Text color={isFreeModel(model) ? "green" : "cyan"}>{model}</Text>
+          <Text color="magenta">  ❯ </Text>
+          {busy ? (
+            <Text dimColor>working…</Text>
+          ) : (
+            <Text>{input}</Text>
+          )}
+        </Box>
+      )}
     </Box>
   );
 }

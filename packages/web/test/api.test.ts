@@ -47,6 +47,18 @@ test("POST /api/chat returns a reply (demo mode, no key)", async () => {
   assert.ok(body.reply.length > 0);
 });
 
+test("GET /api/zen-models returns a list with free flags", async () => {
+  const res = await app.request("/api/zen-models");
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.ok(Array.isArray(body.models));
+  assert.ok(body.models.length > 0);
+  // free models carry free:true
+  const free = body.models.filter((m: any) => m.free);
+  assert.ok(free.length >= 1);
+  assert.ok(free.every((m: any) => m.id.endsWith("-free")));
+});
+
 test("GET /api/soul returns an object (may be empty)", async () => {
   const res = await app.request("/api/soul");
   assert.equal(res.status, 200);

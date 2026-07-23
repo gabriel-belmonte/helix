@@ -16,7 +16,7 @@ import { homedir } from "node:os";
 import { join, resolve, relative, dirname } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { loadConfig, saveConfig, type HelixConfig } from "../../cli/src/config.js";
-import { listCredentials, setKey, removeKey, PROVIDER_ENV } from "helix-core";
+import { listCredentials, setKey, removeKey, PROVIDER_ENV, ZEN_MODELS, fetchZenModels, isFreeModel } from "helix-core";
 import { discoverSkills, buildAgent, loadProvider } from "helix-core";
 import { scriptedLLM } from "helix-agent";
 import { JsonlMemoryStore, readSoul } from "helix-memory";
@@ -76,6 +76,16 @@ app.delete("/api/auth/:provider", (c) => {
   const provider = c.req.param("provider");
   removeKey(provider);
   return c.json({ ok: true, provider });
+});
+
+// --- Zen model catalog (free highlighted) ---
+app.get("/api/zen-models", async (c) => {
+  const models = await fetchZenModels().catch(() => ZEN_MODELS);
+  const current = loadConfig().model;
+  return c.json({
+    models: models.map((m) => ({ ...m, current: m.id === current })),
+    current,
+  });
 });
 
 // --- Skills (discovered from skill dirs) ---

@@ -7,6 +7,8 @@
 
 import { scriptedLLM, type LLMProvider } from "helix-agent";
 import { vercelStreamingProvider } from "helix-agent/vercel";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import { resolveKey } from "./auth.js";
 
 type ProviderConfig = {
@@ -117,16 +119,14 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   );
 }
 
-async function createOpenAIModel(apiKey: string, model: string, baseUrl?: string) {
-  const { createOpenAI } = await import("@ai-sdk/openai");
+function createOpenAIModel(apiKey: string, model: string, baseUrl?: string) {
   const config: any = { apiKey };
   if (baseUrl) config.baseURL = baseUrl;
   const provider = createOpenAI(config);
   return provider(model);
 }
 
-async function createAnthropicModel(apiKey: string, model: string) {
-  const { createAnthropic } = await import("@ai-sdk/anthropic");
+function createAnthropicModel(apiKey: string, model: string) {
   const provider = createAnthropic({ apiKey });
   return provider(model);
 }

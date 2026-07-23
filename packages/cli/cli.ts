@@ -47,6 +47,7 @@ interface CliOpts {
   version?: boolean;
   status?: boolean;
   dashboard?: boolean;
+  tui?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -59,6 +60,7 @@ function parseArgs(argv: string[]): CliOpts {
     else if (a === "-V" || a === "--version") opts.version = true;
     else if (a === "status") opts.status = true;
     else if (a === "dashboard") opts.dashboard = true;
+    else if (a === "tui") opts.tui = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
     else if (a === "config") {
       opts.config = true;
@@ -141,6 +143,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
   console.log(`  ${chalk.cyan("helix status")}              show provider, model and API-key status`);
   console.log(`  ${chalk.cyan("helix dashboard")}           launch the web Dashboard on :8799`);
+  console.log(`  ${chalk.cyan("helix tui")}                 launch the terminal UI (Ink chat)`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
@@ -425,6 +428,36 @@ function runDashboard() {
   console.log(`    ${chalk.cyan("bun run server/index.ts")}  # in packages/web`);
 }
 
+// Launch the Helix TUI (Ink-based terminal UI).
+// In a source checkout it spawns the TUI with Bun; in a standalone binary it
+// prints instructions.
+function runTui() {
+  const here = import.meta.dirname ?? ".";
+  const candidates = [
+    join(here, "../tui/src/tui.tsx"), // dev: packages/cli -> packages/tui
+    "/app/packages/tui/dist/tui.js", // docker (if mounted)
+  ];
+  const entry = candidates.find((c) => existsSync(c));
+  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+
+  if (entry && bun) {
+    console.log(chalk.green("✓") + " launching Helix TUI (Ctrl+C to quit, Ctrl+M to pick model)\n");
+    const child = spawn(bun, [entry], {
+      stdio: "inherit",
+      env: { ...process.env },
+    });
+    child.on("exit", (code) => process.exit(code ?? 0));
+    return;
+  }
+
+  // Fallback.
+  console.log(chalk.yellow("!") + " Helix TUI needs the tui package or a source checkout.");
+  console.log(chalk.gray("  From a source checkout:"));
+  console.log(`    ${chalk.cyan("bun run packages/tui/src/tui.tsx")}`);
+  console.log(chalk.gray("  Or after installing the npm package:"));
+  console.log(`    ${chalk.cyan("helix-tui")}`);
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -443,6 +476,12 @@ async function main() {
   // Dashboard: launch the web control panel.
   if (opts.dashboard) {
     runDashboard();
+    return;
+  }
+
+  // TUI: launch the terminal UI (Ink-based chat).
+  if (opts.tui) {
+    runTui();
     return;
   }
 

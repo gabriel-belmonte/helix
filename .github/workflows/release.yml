@@ -32,6 +32,8 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           echo "Building $VERSION..."
+          # Embed the version so `--version` works inside the standalone binary.
+          printf 'export const BUILD_VERSION: string = "%s";\n' "$VERSION" > packages/cli/src/version.generated.ts
           mkdir -p dist
           bun build packages/cli/cli.ts --compile --target=bun-linux-aarch64  --outfile=dist/helix-linux-aarch64
           bun build packages/cli/cli.ts --compile --target=bun-linux-x64      --outfile=dist/helix-linux-x64

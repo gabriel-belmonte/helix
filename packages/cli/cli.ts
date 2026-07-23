@@ -42,6 +42,7 @@ interface CliOpts {
   evalModel?: string;
   evalCompare?: string;
   evalJudge?: string;
+  version?: boolean;
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -51,6 +52,7 @@ function parseArgs(argv: string[]): CliOpts {
     if (a === "-p" || a === "--prompt") opts.prompt = argv[++i];
     else if (a === "--scripted") opts.scripted = true;
     else if (a === "-v" || a === "--verbose") opts.verbose = true;
+    else if (a === "-V" || a === "--version") opts.version = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
     else if (a === "config") {
       opts.config = true;
@@ -130,6 +132,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix -p \"prompt\"")}          run a single prompt and exit`);
   console.log(`  ${chalk.cyan("helix")}                        interactive REPL`);
   console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
+  console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
   console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
@@ -312,12 +315,51 @@ function printConfig(cfg: HelixConfig, key?: string) {
     for (const k of Object.keys(cfg) as (keyof HelixConfig)[]) {
       console.log(`  ${chalk.cyan(k)} = ${cfg[k] ?? chalk.gray("(unset)")}`);
     }
-    if (Object.keys(cfg).length === 0) console.log(`  ${chalk.gray("(empty — run `helix config set provider <x>`)")}`);
+    if (Object.keys(cfg).length === 0) console.log(`  ${chalk.gray("(empty — run `helix config set provider <x>`")}`);
   }
+}
+
+// Read the CLI version. Priority:
+//   1. BUILD_VERSION — written at release/build time into version.generated.ts
+//      (release.yml / Dockerfile regenerate it with the release tag before compile).
+//   2. package.json next to the entry (dev / npm install).
+import { BUILD_VERSION } from "./src/version.generated.js";
+function getCliVersion(): string {
+  if (BUILD_VERSION && BUILD_VERSION.length > 0) return BUILD_VERSION;
+  try {
+    const here = import.meta.dirname ?? import.meta.url;
+    let dir = here.startsWith("file://") ? new URL(here).pathname : String(here);
+    if (dir.endsWith("cli.ts") || dir.endsWith("cli.js")) dir = dir.replace(/cli\.(ts|js)$/, "");
+    let cur = dir;
+    for (let i = 0; i < 6; i++) {
+      const p = join(cur, "package.json");
+      if (existsSync(p)) {
+        const pkg = JSON.parse(readFileSync(p, "utf8"));
+        if (pkg.name === "helix-agent-cli" || pkg.name?.startsWith("helix-")) return pkg.version ?? "0.0.0";
+      }
+      const parent = join(cur, "..");
+      if (parent === cur) break;
+      cur = parent;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "0.0.0";
+}
+
+function printVersion() {
+  const v = getCliVersion();
+  console.log(`helix-agent-cli ${v}`);
 }
 
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
+
+  // Version flag (works even with no config / offline).
+  if (opts.version) {
+    printVersion();
+    return;
+  }
 
   // Update subcommand
   if (opts.update) {

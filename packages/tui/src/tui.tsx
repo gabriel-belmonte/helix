@@ -208,4 +208,34 @@ function Chat() {
   );
 }
 
+// Print version and exit (no TUI) when --version/-V is passed.
+function printVersionAndExit() {
+  try {
+    let dir = import.meta.dirname ?? ".";
+    if (typeof dir === "string" && dir.startsWith("file://")) dir = new URL(dir).pathname;
+    let cur = dir;
+    for (let i = 0; i < 6; i++) {
+      const p = join(cur, "package.json");
+      if (existsSync(p)) {
+        const pkg = JSON.parse(readFileSync(p, "utf8"));
+        if (pkg.name === "helix-tui" || pkg.name?.startsWith("helix-")) {
+          console.log(`helix-tui ${pkg.version ?? "0.0.0"}`);
+          process.exit(0);
+        }
+      }
+      const parent = join(cur, "..");
+      if (parent === cur) break;
+      cur = parent;
+    }
+  } catch {
+    /* ignore */
+  }
+  console.log("helix-tui 0.0.0");
+  process.exit(0);
+}
+
+if (process.argv.includes("--version") || process.argv.includes("-V")) {
+  printVersionAndExit();
+}
+
 render(<Chat />);

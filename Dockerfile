@@ -27,8 +27,11 @@ RUN bunx turbo run build
 # 2) Build the web UI (Vite -> static assets in packages/web/dist).
 RUN cd packages/web && bun run build
 # 3) Compile self-contained executables (no Bun runtime needed at runtime).
-RUN bun build packages/cli/cli.ts --compile --target=bun-linux-x64 --outfile=/app/helix
-RUN bun build packages/web/server/index.ts --compile --target=bun-linux-x64 --outfile=/app/helix-web
+#    Embed the version so `--version` works inside the standalone binary.
+RUN CLI_VER="$(node -p "require('./packages/cli/package.json').version")" \
+ && printf 'export const BUILD_VERSION: string = "%s";\n' "$CLI_VER" > packages/cli/src/version.generated.ts \
+ && bun build packages/cli/cli.ts --compile --target=bun-linux-x64 --outfile=/app/helix \
+ && bun build packages/web/server/index.ts --compile --target=bun-linux-x64 --outfile=/app/helix-web
 
 # ── Target: cli ────────────────────────────────────────────────────────────
 FROM debian:bookworm-slim AS cli

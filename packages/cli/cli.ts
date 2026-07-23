@@ -366,7 +366,11 @@ function printStatus(cfg: HelixConfig) {
   const activeModel = cfg.model ?? "(unset)";
   console.log(chalk.bold("Helix status"));
   console.log(`  ${chalk.cyan("provider")}  ${active}`);
-  console.log(`  ${chalk.cyan("model")}     ${activeModel}\n`);
+  console.log(`  ${chalk.cyan("model")}     ${activeModel}`);
+  if (cfg.fallback && cfg.fallback.length > 0) {
+    console.log(`  ${chalk.cyan("fallback")} [${cfg.fallback.join(", ")}]`);
+  }
+  console.log();
   console.log(chalk.bold("API keys"));
   for (const c of creds) {
     const mark = c.configured ? chalk.green("● set") : chalk.gray("○ not set");

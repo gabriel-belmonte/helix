@@ -13,6 +13,9 @@ export type HelixConfig = {
   model?: string;
   zenBaseUrl?: string;
   hfBaseUrl?: string;
+  /** Ordered list of "{provider}:{model}" fallbacks. When set, the router
+   *  tries each one in sequence until one succeeds. */
+  fallback?: string[];
 };
 
 export function loadConfig(): HelixConfig {

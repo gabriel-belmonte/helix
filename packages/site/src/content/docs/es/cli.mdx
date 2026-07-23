@@ -39,6 +39,21 @@ helix config get model               # muestra una clave
 helix config list                    # muestra la ruta de config + valores
 ```
 
+**Fallback de proveedores** (failover automático si el primer modelo falla):
+
+```bash
+# Poner múltiples fallbacks con la clave `fallback`:
+helix config set fallback '["zen:mimo-v2.5-free","hf:Qwen/Qwen3-Coder-Next"]'
+
+# O editar ~/.helix/config.json directamente:
+#   { "provider": "zen", "model": "big-pickle",
+#     "fallback": ["zen:mimo-v2.5-free", "hf:Qwen/Qwen3-Coder-Next"] }
+```
+
+Cuando `fallback` está configurado, Helix prueba cada entrada en orden. Si
+el primer modelo da error, salta al siguiente — así siempre tienes un modelo
+funcionando. Ve [`helix status`](#estado-status) para la cadena activa.
+
 ## Claves API (auth)
 
 ```bash

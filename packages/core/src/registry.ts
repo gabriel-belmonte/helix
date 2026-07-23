@@ -74,6 +74,10 @@ export type HelixConfig = {
     searxngUrl?: string;
     firecrawlUrl?: string;
   };
+  /** Provider configuration (used by CLI surfaces). */
+  provider?: string;
+  model?: string;
+  fallback?: string[];
 };
 
 export const defaultConfig: HelixConfig = {

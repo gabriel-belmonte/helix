@@ -1,0 +1,25 @@
+{
+  "name": "helix-tui",
+  "version": "0.1.0",
+  "description": "Helix TUI — a thin Ink-based terminal UI over helix-core.",
+  "type": "module",
+  "bin": {
+    "helix-tui": "./dist/tui.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/tui.js"
+  },
+  "dependencies": {
+    "helix-agent": "*",
+    "helix-core": "*",
+    "ink": "^5.0.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}

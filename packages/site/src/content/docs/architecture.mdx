@@ -52,4 +52,17 @@ Because you said it best: *"una sola fuente para CLI, TUI, web, Dashboard y
 Desktop"*. Splitting the runtime into `helix-core` means a bug fixed (or a
 module added) in one place benefits every surface at once.
 
+## Surfaces
+
+All surfaces import from `helix-core` and call the same
+`buildAgent(llm, { config, plugins })`:
+
+- **CLI** (`helix-agent-cli`) — terminal agent, native binary.
+- **TUI** (`helix-tui`) — Ink terminal UI: chat history, streaming output,
+  live tool-call indicator. Same logic, different render.
+- **web / Dashboard / Desktop** (future) — same base.
+
+Even the **provider loader** (`loadProvider`) lives in `helix-core`, so
+OpenAI/Anthropic/Zen/… resolution is identical across CLI and TUI.
+
 ➡️ Next: [The web module](/helix/web-module/)

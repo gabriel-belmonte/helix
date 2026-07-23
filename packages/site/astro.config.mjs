@@ -72,7 +72,7 @@ export default defineConfig({
           {
             label: "Empieza aquí",
             items: [
-              { label: "Introducción", link: "/helix/es/introduction/" },
+              { label: "Introducción", link: "/helix/es/" },
               { label: "Inicio rápido", link: "/helix/es/quickstart/" },
               { label: "Autenticación y claves API", link: "/helix/es/authentication/" },
             ],

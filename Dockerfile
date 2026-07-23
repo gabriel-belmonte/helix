@@ -23,8 +23,8 @@ RUN bun install --frozen-lockfile 2>/dev/null || bun install
 # ── Builder: compile static binaries ───────────────────────────────────────
 FROM base AS build
 # Build each package in dependency order (avoids turbo's platform binary issue).
-RUN cd packages/memory && bun run build \
- && cd ../agent && bun run build \
+RUN cd packages/agent && bun run build \
+ && cd ../memory && bun run build \
  && cd ../core && bun run build \
  && cd ../mcp && bun run build \
  && cd ../eval && bun run build \

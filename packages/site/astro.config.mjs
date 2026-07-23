@@ -44,6 +44,7 @@ export default defineConfig({
           items: [
             { label: "MCP (Model Context Protocol)", link: "/helix/mcp/" },
             { label: "Skills", link: "/helix/skills/" },
+            { label: "Example: filesystem + Context7", link: "/helix/examples/filesystem-context7/" },
           ],
         },
         {

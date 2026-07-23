@@ -1,0 +1,74 @@
+---
+title: Ejemplo — filesystem + Context7
+description: Un ejemplo verificado de principio a fin conectando Helix a los servidores MCP de filesystem y Context7.
+sidebar:
+  order: 3
+---
+
+# Ejemplo — filesystem + Context7
+
+Un ejemplo **verificado** de principio a fin: conecta Helix a dos servidores
+MCP reales a la vez — el servidor oficial de filesystem y
+[Context7](https://context7.com) (docs de librerías al día) — y llama a sus
+tools a través del agente.
+
+## 1. Config
+
+Crea `helix.mcp.json` en la raíz del proyecto o en `~/.helix/`:
+
+```json
+{
+  "servers": {
+    "fs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp/helix-demo"]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
+}
+```
+
+Helix lo carga automáticamente y registra las tools de cada servidor, con
+namespace `fs__*` y `context7__*`.
+
+## 2. Qué se registra
+
+| Servidor | Tools (con namespace) |
+|----------|------------------------|
+| `fs` | `fs__read_file`, `fs__write_file`, `fs__edit_file`, `fs__list_directory`, `fs__search_files`, `fs__get_file_info`, `fs__directory_tree`, … (13 tools) |
+| `context7` | `context7__resolve-library-id`, `context7__query-docs` |
+
+## 3. Llamadas verificadas
+
+Ejecutar el agente contra ambos servidores produjo resultados reales:
+
+```text
+📁 filesystem: write_file then read_file
+  write_file -> "Successfully wrote to /tmp/helix-demo/hello.txt"
+  read_file  -> "Helix ❤ MCP\n"
+
+📚 context7: query-docs for 'react'
+  query-docs -> const [state, setState] = useState(initialState)
+                Source: github.com/reactjs/react.dev/.../useState.md
+```
+
+El servidor de filesystem escribió y leyó un archivo en disco; Context7 trajo
+documentación viva de React por red. Ambos pasaron por el proxy MCP de Helix
+(`run()` → `client.callTool()`) sin código de unión.
+
+## 4. Notas
+
+- Los nombres de tools MCP conservan su forma original (p.ej. `resolve-library-id`
+  con guión). Se muestran tal cual en el system prompt junto con su
+  `inputSchema` JSON, así el modelo conoce los parámetros exactos.
+- Las formas de los argumentos vienen de cada servidor. Para Context7,
+  `query-docs` espera `context7CompatibleLibraryID` + `query` + `tokens` — no lo
+  que sugeriría el nombre del CLI. Revisa siempre el `inputSchema` de la tool
+  (visible en el system prompt / vía `listTools`).
+
+➡️ Volver a: [MCP](/helix/mcp/)

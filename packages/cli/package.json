@@ -19,7 +19,10 @@
   "author": "gabriel-belmonte",
   "license": "MIT",
   "dependencies": {
-    "helix-agent": "*"
+    "helix-agent": "*",
+    "ai": "^4.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@ai-sdk/anthropic": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

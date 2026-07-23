@@ -1,0 +1,34 @@
+services:
+  helix-web:
+    build:
+      context: .
+      target: web
+    image: helix-web:latest
+    container_name: helix-web
+    ports:
+      - "8799:8799"
+    environment:
+      # Pasca tu proveedor aquí (o monta ~/.helix como volume, abajo).
+      OPENCODE_ZEN_API_KEY: "${OPENCODE_ZEN_API_KEY:-}"
+      HELIX_PROVIDER: "${HELIX_PROVIDER:-zen}"
+      HELIX_MODEL: "${HELIX_MODEL:-big-pickle}"
+    volumes:
+      # Persiste config + claves API entre reinicios.
+      - helix-config:/root/.helix
+    restart: unless-stopped
+
+  # Opcional: CLI como servicio one-shot (descomenta para usarlo).
+  # helix-cli:
+  #   build:
+  #     context: .
+  #     target: cli
+  #   image: helix-cli:latest
+  #   environment:
+  #     OPENCODE_ZEN_API_KEY: "${OPENCODE_ZEN_API_KEY:-}"
+  #   volumes:
+  #     - helix-config:/root/.helix
+  #   entrypoint: ["helix"]
+  #   command: ["-p", "list the files in the current directory"]
+
+volumes:
+  helix-config:

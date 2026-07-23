@@ -22,13 +22,13 @@ RUN bun install --frozen-lockfile 2>/dev/null || bun install
 
 # ── Builder: compile static binaries ───────────────────────────────────────
 FROM base AS build
-# Build each package directly with tsc (avoids turbo's platform binary issue).
-RUN cd packages/agent && bun run build \
- && cd ../../packages/core && bun run build \
- && cd ../../packages/mcp && bun run build \
- && cd ../../packages/eval && bun run build \
- && cd ../../packages/memory && bun run build \
- && cd ../../packages/cli && bun run build
+# Build each package in dependency order (avoids turbo's platform binary issue).
+RUN cd packages/memory && bun run build \
+ && cd ../agent && bun run build \
+ && cd ../core && bun run build \
+ && cd ../mcp && bun run build \
+ && cd ../eval && bun run build \
+ && cd ../cli && bun run build
 # 2) Build the web UI (Vite -> static assets in packages/web/dist).
 RUN cd packages/web && bun run build
 # 3) Compile self-contained executables (no Bun runtime needed at runtime).

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // helix-agent-cli — a minimal, transparent coding agent on top of helix-agent.
 
+import chalk from "chalk";
+import ora from "ora";
 import { buildAgent } from "./src/agent.js";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
@@ -58,49 +60,49 @@ function parseArgs(argv: string[]): CliOpts {
 }
 
 function printHelp() {
-  console.log(`helix — minimal coding agent CLI (helix-agent)
+  console.log(chalk.bold("helix") + chalk.gray(" — minimal coding agent CLI (helix-agent)\n"));
 
-USAGE
-  helix -p "prompt"          run a single prompt and exit
-  helix                        interactive REPL
-  helix -v                   verbose: show tool calls
-  helix config set <k> <v>  save a config value
-  helix config get [k]         show config (or one key)
-  helix config list            show full config path + values
-  helix history clear        clear conversation history
-  helix update               update to latest release
+  console.log(chalk.bold("USAGE"));
+  console.log(`  ${chalk.cyan("helix -p \"prompt\"")}          run a single prompt and exit`);
+  console.log(`  ${chalk.cyan("helix")}                        interactive REPL`);
+  console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
+  console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
+  console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
+  console.log(`  ${chalk.cyan("helix config list")}            show full config path + values`);
+  console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
+  console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
 
-PROVIDERS (set via config or env)
-  zen     OpenCode Zen (free Big Pickle)  → set provider zen; key=OPENCODE_ZEN_API_KEY
-  hf      HuggingFace router (free)        → set provider hf;   key=HF_TOKEN
-  openrouter  OpenRouter free tier            → set provider openrouter; key=OPENROUTER_API_KEY
-  openai  OpenAI                              → set provider openai; key=OPENAI_API_KEY
+  console.log(chalk.bold("PROVIDERS (set via config or env)"));
+  console.log(`  ${chalk.cyan("zen")}     OpenCode Zen (free Big Pickle)  → set provider zen; key=OPENCODE_ZEN_API_KEY`);
+  console.log(`  ${chalk.cyan("hf")}      HuggingFace router (free)        → set provider hf;   key=HF_TOKEN`);
+  console.log(`  ${chalk.cyan("openrouter")}  OpenRouter free tier            → set provider openrouter; key=OPENROUTER_API_KEY`);
+  console.log(`  ${chalk.cyan("openai")}  OpenAI                              → set provider openai; key=OPENAI_API_KEY\n`);
 
-CONFIG KEYS
-  provider      one of: zen | hf | openrouter | openai
-  model         model slug (e.g. big-pickle, Qwen/Qwen3-Coder-Next)
-  zenBaseUrl   override Zen endpoint
-  hfBaseUrl    override HF endpoint
+  console.log(chalk.bold("CONFIG KEYS"));
+  console.log(`  ${chalk.cyan("provider")}      one of: zen | hf | openrouter | openai`);
+  console.log(`  ${chalk.cyan("model")}         model slug (e.g. big-pickle, Qwen/Qwen3-Coder-Next)`);
+  console.log(`  ${chalk.cyan("zenBaseUrl")}   override Zen endpoint`);
+  console.log(`  ${chalk.cyan("hfBaseUrl")}    override HF endpoint\n`);
 
-EXAMPLES
-  helix config set provider zen
-  helix config set model big-pickle
-  helix -p "refactor utils.ts to async/await"
-  helix -v -p "list files in src/"
+  console.log(chalk.bold("EXAMPLES"));
+  console.log(`  ${chalk.gray("$")} helix config set provider zen`);
+  console.log(`  ${chalk.gray("$")} helix config set model big-pickle`);
+  console.log(`  ${chalk.gray("$")} helix -p "refactor utils.ts to async/await"`);
+  console.log(`  ${chalk.gray("$")} helix -v -p "list files in src/"\n`);
 
-NOTE: API keys are still read from ENV vars (never stored in config).
-      config holds only provider + model choice.`);
+  console.log(chalk.gray("NOTE: API keys are still read from ENV vars (never stored in config)."));
+  console.log(chalk.gray("      config holds only provider + model choice."));
 }
 
 function printConfig(cfg: HelixConfig, key?: string) {
-  console.log(`config: ${CONFIG_PATH}`);
+  console.log(chalk.gray(`config: ${CONFIG_PATH}`));
   if (key) {
-    console.log(`  ${key} = ${cfg[key as keyof HelixConfig] ?? "(unset)"}`);
+    console.log(`  ${chalk.cyan(key)} = ${cfg[key as keyof HelixConfig] ?? chalk.gray("(unset)")}`);
   } else {
     for (const k of Object.keys(cfg) as (keyof HelixConfig)[]) {
-      console.log(`  ${String(k)} = ${cfg[k] ?? "(unset)"}`);
+      console.log(`  ${chalk.cyan(k)} = ${cfg[k] ?? chalk.gray("(unset)")}`);
     }
-    if (Object.keys(cfg).length === 0) console.log("  (empty — run `helix config set provider <x>`)");
+    if (Object.keys(cfg).length === 0) console.log(`  ${chalk.gray("(empty — run `helix config set provider <x>`)")}`);
   }
 }
 
@@ -116,7 +118,7 @@ async function main() {
   // History clear subcommand
   if (opts.historyClear) {
     clearHistory();
-    console.log("✓ history cleared");
+    console.log(chalk.green("✓") + " history cleared");
     return;
   }
 
@@ -130,8 +132,8 @@ async function main() {
       const cfg = loadConfig();
       (cfg as any)[opts.configKey] = opts.configVal;
       saveConfig(cfg);
-      console.log(`✓ saved ${opts.configKey} = ${opts.configVal}`);
-      console.log("  (set your API key in the environment, e.g. OPENCODE_ZEN_API_KEY)");
+      console.log(chalk.green("✓") + ` saved ${chalk.cyan(opts.configKey)} = ${chalk.cyan(opts.configVal)}`);
+      console.log(chalk.gray("  (set your API key in the environment, e.g. OPENCODE_ZEN_API_KEY)"));
       return;
     }
     printHelp();
@@ -144,7 +146,7 @@ async function main() {
   try {
     llm = loadProvider({ scripted: opts.scripted });
   } catch (e: any) {
-    console.error(`✗ ${e.message}`);
+    console.error(chalk.red("✗") + " " + e.message);
     process.exit(1);
   }
 
@@ -152,7 +154,10 @@ async function main() {
   const onToolCall = opts.verbose
     ? (name: string, input: unknown) => {
         const preview = typeof input === "object" ? JSON.stringify(input) : String(input);
-        console.log(`  🔧 ${name}(${preview.length > 120 ? preview.slice(0, 120) + "..." : preview})`);
+        console.log(
+          chalk.cyan("  🔧 " + name) +
+          chalk.gray("(" + (preview.length > 120 ? preview.slice(0, 120) + "..." : preview) + ")")
+        );
       }
     : undefined;
 
@@ -166,10 +171,10 @@ async function main() {
   const agent = buildAgent(llm, { onToolCall, initialHistory });
 
   if (opts.prompt) {
-    if (opts.verbose) console.log(`→ prompt: ${opts.prompt}`);
+    if (opts.verbose) console.log(chalk.gray("→ prompt: " + opts.prompt));
     // Streaming: print chunks as they arrive
     const onChunk = (text: string) => {
-      process.stdout.write(text);
+      process.stdout.write(chalk.white(text));
     };
     const reply = await agent.run(opts.prompt, onChunk);
     // Persist this turn
@@ -180,18 +185,23 @@ async function main() {
   }
 
   // Interactive REPL
-  const turnCount = initialHistory.length > 0 ? `(${savedHistory.length} messages in history) ` : "";
-  console.log(`Helix coding agent (helix-agent). ${turnCount}Type 'exit' to quit.\n`);
+  const turnCount = initialHistory.length > 0 ? chalk.gray(`(${savedHistory.length} messages in history) `) : "";
+  console.log(chalk.gray("Helix coding agent (helix-agent). ") + turnCount + chalk.gray("Type 'exit' to quit.\n"));
   const rl = readline.createInterface({ input, output });
   while (true) {
-    const userInput = await rl.question("you> ");
+    const userInput = await rl.question(chalk.cyan("you> "));
     if (userInput.trim().toLowerCase() === "exit") break;
     if (!userInput.trim()) continue;
-    const reply = await agent.run(userInput);
+
+    // Streaming in REPL
+    const onChunk = (text: string) => {
+      process.stdout.write(chalk.white(text));
+    };
+    const reply = await agent.run(userInput, onChunk);
     // Persist this turn
     appendHistory("user", userInput);
     appendHistory("assistant", reply);
-    console.log(`Helix: ${reply}\n`);
+    console.log("\n");
   }
   rl.close();
 }

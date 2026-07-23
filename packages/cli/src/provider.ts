@@ -1,6 +1,7 @@
 // Load an LLM provider from environment variables OR ~/.helix/config.json.
 // Uses Vercel AI SDK under the hood — supports OpenAI, Anthropic, Google, etc.
 
+import chalk from "chalk";
 import { scriptedLLM, type LLMProvider } from "helix-agent";
 import { vercelStreamingProvider } from "helix-agent/vercel";
 import { loadConfig } from "./config.js";
@@ -77,14 +78,14 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   }
 
   throw new Error(
-    "No LLM provider configured. Set one of:\n" +
-    "  OPENAI_API_KEY      → OpenAI\n" +
-    "  ANTHROPIC_API_KEY   → Anthropic\n" +
-    "  OPENROUTER_API_KEY  → OpenRouter\n" +
-    "  HF_TOKEN            → HuggingFace\n" +
-    "  OPENCODE_ZEN_API_KEY → OpenCode Zen\n" +
-    "  LLM_API_KEY + LLM_BASE_URL → Custom endpoint\n\n" +
-    "Or run `helix config set provider <name>` + `helix config set model <slug>`."
+    chalk.red("No LLM provider configured. Set one of:") + "\n" +
+    chalk.gray("  OPENAI_API_KEY      → OpenAI\n") +
+    chalk.gray("  ANTHROPIC_API_KEY   → Anthropic\n") +
+    chalk.gray("  OPENROUTER_API_KEY  → OpenRouter\n") +
+    chalk.gray("  HF_TOKEN            → HuggingFace\n") +
+    chalk.gray("  OPENCODE_ZEN_API_KEY → OpenCode Zen\n") +
+    chalk.gray("  LLM_API_KEY + LLM_BASE_URL → Custom endpoint\n\n") +
+    chalk.gray("Or run `helix config set provider <name>` + `helix config set model <slug>`.")
   );
 }
 

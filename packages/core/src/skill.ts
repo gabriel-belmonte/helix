@@ -99,10 +99,12 @@ export function renderSkillGuidance(skills: HelixSkill[]): string {
 
 /**
  * Build the `use_skill` tool that returns a skill's instructions on demand.
+ * Also registers a `skill` alias (matching OpenCode's tool name) so skills
+ * authored for OpenCode/Claude keep working unchanged.
  */
 export function makeSkillTool(skills: HelixSkill[]) {
   const byName = new Map(skills.map((s) => [s.name, s]));
-  return {
+  const loader = {
     name: "use_skill",
     description:
       "Load a skill's specialized instructions into context. Call this when a task matches a skill description. Input: the skill name.",
@@ -116,4 +118,7 @@ export function makeSkillTool(skills: HelixSkill[]) {
       return `# Skill: ${skill.name}\n\n${skill.body}`;
     },
   };
+  // OpenCode/Claude-compatible alias.
+  const alias = { ...loader, name: "skill" };
+  return [loader, alias];
 }

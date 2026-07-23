@@ -71,4 +71,51 @@ const agent = await buildAgent(myLLM, {
 });
 ```
 
+## Installing skills from skills.sh / OpenCode
+
+Helix is compatible with the **Open Agent Skills Ecosystem** ([skills.sh](https://skills.sh))
+— the same `SKILL.md` format used by OpenCode, Claude Code, and Cursor.
+That means you can use skills published there with zero changes.
+
+The format is identical: a folder with a `SKILL.md` whose YAML frontmatter has
+`name` + `description` (plus optional `license`, `compatibility`, `metadata`).
+Unknown frontmatter fields are ignored, exactly like OpenCode.
+
+### Where Helix looks
+
+Helix scans these directories automatically:
+
+- `~/.helix/skills` — your personal skills
+- `./skills` — project-local skills
+- `~/.claude/skills`, `./.claude/skills` — OpenCode/Claude-compatible
+- `~/.agents/skills`, `./.agents/skills` — agent-compatible
+
+So a skill installed by OpenCode into `.claude/skills/<name>` is picked up by
+Helix too.
+
+### Install a skill from skills.sh
+
+`skills.sh` is an index over GitHub repos. The simplest install is to clone
+the source repo (the `npx skills add` CLI is interactive):
+
+```bash
+# example: Vercel's React best-practices skill
+git clone --depth 1 https://github.com/vercel-labs/agent-skills.git /tmp/agent-skills
+mkdir -p ~/.helix/skills
+cp -r /tmp/agent-skills/skills/react-best-practices ~/.helix/skills/
+rm -rf /tmp/agent-skills
+```
+
+Helix now lists it in `<available_skills>` and can load it with `use_skill`.
+
+> **Note on names:** the agent calls a skill by its frontmatter `name`
+> (e.g. `vercel-react-best-practices`), not the folder name. The system
+> prompt shows the correct name, so the model uses it as-is.
+
+### Tool name compatibility
+
+Helix registers the loader as **`use_skill`** and also as **`skill`** (an alias
+matching OpenCode), so skills authored to call `skill({ name })` work unchanged.
+
 ➡️ Back to: [MCP](/helix/mcp/)
+

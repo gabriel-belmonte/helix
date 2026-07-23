@@ -14,10 +14,16 @@ import {
 // Default skill directories: ~/.helix/skills and ./skills (project-local).
 import { homedir } from "node:os";
 import { join } from "node:path";
-
+// Default skill directories: ~/.helix/skills and ./skills (Helix-local),
+// plus the OpenCode/Claude-compatible locations (.claude/skills, .agents/skills)
+// so skills installed from skills.sh / OpenCode work without moving them.
 const DEFAULT_SKILL_DIRS = [
   join(homedir(), ".helix", "skills"),
   join(process.cwd(), "skills"),
+  join(homedir(), ".claude", "skills"),
+  join(process.cwd(), ".claude", "skills"),
+  join(homedir(), ".agents", "skills"),
+  join(process.cwd(), ".agents", "skills"),
 ];
 
 // Build the tool-list section of the system prompt from the actual tools.
@@ -53,7 +59,7 @@ export async function buildAgent(
   // Skills: discover + add the `use_skill` tool + guidance block.
   const skillDirs = [...DEFAULT_SKILL_DIRS, ...(opts?.skillDirs ?? [])];
   const skills: HelixSkill[] = discoverSkills(skillDirs);
-  const allTools: Tool[] = [...tools, makeSkillTool(skills)];
+  const allTools: Tool[] = [...tools, ...makeSkillTool(skills)];
 
   const SYSTEM = [
     "You are Helix, a minimal coding agent that helps with software tasks.",

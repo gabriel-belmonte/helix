@@ -54,9 +54,17 @@ test("renderSkillGuidance empty when no skills", () => {
 
 test("use_skill tool returns the skill body, errors on unknown", async () => {
   const skills = [{ name: "demo", description: "d", dir: dir, body: "# Demo\n\nDo this." }] as any;
-  const tool = makeSkillTool(skills);
+  const [tool] = makeSkillTool(skills);
   const ok = await tool.run("demo");
   assert.match(ok as string, /Do this\./);
   const bad = await tool.run("nope");
   assert.match(bad as string, /Unknown skill/);
+});
+
+test("skill alias is also registered (OpenCode-compatible)", async () => {
+  const skills = [{ name: "demo", description: "d", dir: dir, body: "body" }] as any;
+  const tools = makeSkillTool(skills);
+  const names = tools.map((t) => t.name);
+  assert.ok(names.includes("use_skill"));
+  assert.ok(names.includes("skill"));
 });

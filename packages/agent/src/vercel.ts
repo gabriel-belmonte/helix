@@ -36,40 +36,95 @@ export type VercelProviderOpts = {
   }>;
 };
 
-// Convert helix messages → Vercel AI SDK format.
-// AI SDK v7 is very strict about tool message format. To avoid complex
-// conversion, we fold tool results into the following user message.
+// Convert helix messages → Vercel AI SDK v7 CoreMessage format.
+//
+// Helix uses a simple message format:
+//   { role: "assistant", content: "text @@TOOL@@ name {args}" }
+//   { role: "tool", content: "Result of name: ..." }
+//
+// AI SDK v7 requires structured content parts:
+//   assistant → content: ["text", { type: "tool-call", toolCallId, toolName, args }]
+//   tool      → content: [{ type: "tool-result", toolCallId, toolName, result, content }]
+//
+// This converter parses @@TOOL@@ markers from assistant messages and converts
+// them to proper tool-call parts, correlating toolCallIds with tool-result parts.
 function toVercelMessages(messages: ChatMessage[]): any[] {
+  let toolCallIdCounter = 0;
+  // Map from (toolName + sequential index) -> generated toolCallId for correlation.
+  const toolCallMap = new Map<string, string>();
+
   const result: any[] = [];
-  let pendingToolResults: string[] = [];
 
   for (const m of messages) {
     if (m.role === "system") continue;
 
-    if (m.role === "tool") {
-      pendingToolResults.push(m.content);
+    if (m.role === "assistant") {
+      const content = m.content;
+      // Split on @@TOOL@@ markers.
+      const parts: string[] = content.split(/(?=@@TOOL@@)/g);
+      const contentParts: any[] = [];
+
+      for (const part of parts) {
+        if (part.startsWith("@@TOOL@@")) {
+          const rest = part.slice(8).trim();
+          const spaceIdx = rest.indexOf(" ");
+          const toolName = spaceIdx === -1 ? rest : rest.slice(0, spaceIdx);
+          const argsStr = spaceIdx === -1 ? "{}" : rest.slice(spaceIdx + 1);
+          let args: unknown;
+          try { args = JSON.parse(argsStr); } catch { args = argsStr; }
+          const tcId = `call_${++toolCallIdCounter}`;
+          toolCallMap.set(`${toolName}_${toolCallIdCounter}`, tcId);
+          contentParts.push({ type: "tool-call" as const, toolCallId: tcId, toolName, args });
+        } else {
+          const trimmed = part.trim();
+          if (trimmed) contentParts.push(trimmed);
+        }
+      }
+
+      if (contentParts.length === 1 && typeof contentParts[0] === "string") {
+        result.push({ role: "assistant", content: contentParts[0] });
+      } else if (contentParts.length > 0) {
+        result.push({ role: "assistant", content: contentParts });
+      }
       continue;
     }
 
-    // Before a user/assistant message, prepend any pending tool results.
-    if (pendingToolResults.length > 0) {
-      const toolBlock = "Tool results:\n" + pendingToolResults.join("\n");
-      // Merge into the next user message if possible, or add a synthetic one.
-      if (m.role === "user") {
-        result.push({ role: "user", content: toolBlock + "\n\n" + m.content });
-      } else {
-        result.push({ role: "user", content: toolBlock });
-        result.push({ role: m.role, content: m.content });
+    if (m.role === "tool") {
+      // Parse "Result of toolName: {result}" format
+      const toolContent = m.content;
+      let toolName = "unknown";
+      let resultData: unknown = toolContent;
+      const match = toolContent.match(/^Result of (\w+):\s*(.*)/s);
+      if (match) {
+        toolName = match[1];
+        try { resultData = JSON.parse(match[2]); } catch { resultData = match[2]; }
       }
-      pendingToolResults = [];
-    } else {
-      result.push({ role: m.role, content: m.content });
-    }
-  }
 
-  // Flush remaining tool results (shouldn't happen, but be safe).
-  if (pendingToolResults.length > 0) {
-    result.push({ role: "user", content: "Tool results:\n" + pendingToolResults.join("\n") });
+      // Find a matching toolCallId. The tool result correlates to the assistant's
+      // tool call with the same name, in order. We use the next unused ID for
+      // this tool name.
+      const key = `${toolName}_${toolCallIdCounter}`;
+      // Walk backwards from the current counter to find the matching tool call.
+      let toolCallId = `call_${toolCallIdCounter}`;
+      for (let i = toolCallIdCounter; i > 0; i--) {
+        const candidate = toolCallMap.get(`${toolName}_${i}`);
+        if (candidate) { toolCallId = candidate; break; }
+      }
+
+      result.push({
+        role: "tool",
+        content: [{
+          type: "tool-result" as const,
+          toolCallId,
+          toolName,
+          result: resultData,
+        }],
+      });
+      continue;
+    }
+
+    // User messages pass through as-is.
+    result.push({ role: m.role, content: m.content });
   }
 
   return result;

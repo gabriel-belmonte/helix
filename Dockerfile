@@ -16,14 +16,19 @@
 # ── Base: Bun on Debian slim ───────────────────────────────────────────────
 FROM oven/bun:latest AS base
 WORKDIR /app
-COPY package.json bun.lock turbo.json tsconfig.base.json ./
-COPY packages ./packages
-RUN bun install
+COPY . .
+# Install workspace deps (no need for turbo native binary in Docker).
+RUN bun install --frozen-lockfile 2>/dev/null || bun install
 
 # ── Builder: compile static binaries ───────────────────────────────────────
 FROM base AS build
-# 1) Build packages needed by the CLI and web Dashboard.
-RUN bunx turbo run build --filter=helix-agent-cli... --filter=helix-web...
+# Build each package directly with tsc (avoids turbo's platform binary issue).
+RUN cd packages/agent && bun run build \
+ && cd ../../packages/core && bun run build \
+ && cd ../../packages/mcp && bun run build \
+ && cd ../../packages/eval && bun run build \
+ && cd ../../packages/memory && bun run build \
+ && cd ../../packages/cli && bun run build
 # 2) Build the web UI (Vite -> static assets in packages/web/dist).
 RUN cd packages/web && bun run build
 # 3) Compile self-contained executables (no Bun runtime needed at runtime).

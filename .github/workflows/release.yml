@@ -18,15 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Use Bun (not npm): the monorepo root uses the `workspace:*` protocol,
+      # which npm does not understand (EUNSUPPORTEDPROTOCOL). Bun resolves the
+      # local helix-* packages and the Rollup native binaries correctly.
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: npm install
-      - run: npm install @rollup/rollup-linux-x64-gnu --save-optional
-
-      - name: Build engine
-        run: npm run build:agent
-
+      - run: bun install
+      # Build the CLI and every package it depends on (agent, core, mcp, eval).
+      - name: Build packages
+        run: bunx turbo run build --filter=helix-agent-cli...
       - name: Compile binaries
         run: |
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
@@ -36,7 +37,6 @@ jobs:
           bun build packages/cli/cli.ts --compile --target=bun-linux-x64      --outfile=dist/helix-linux-x64
           bun build packages/cli/cli.ts --compile --target=bun-darwin-aarch64 --outfile=dist/helix-darwin-aarch64
           bun build packages/cli/cli.ts --compile --target=bun-darwin-x64     --outfile=dist/helix-darwin-x64
-
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +44,7 @@ jobs:
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           gh release create "$VERSION" \
             --title "Helix Agent CLI $VERSION" \
-            --notes "Native binaries. Install: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh" \
+            --notes "Native binaries (no Node required). Install: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh" \
             dist/helix-linux-aarch64 \
             dist/helix-linux-x64 \
             dist/helix-darwin-aarch64 \

@@ -66,3 +66,34 @@ test("onToolCall callback is invoked", async () => {
   await agent.run("go");
   assert.deepEqual(calls, ["ping"]);
 });
+
+test("streaming: onChunk receives text chunks", async () => {
+  const chunks: string[] = [];
+  const llm = scriptedLLM(() => "Hello world");
+  // Add stream method to the scripted provider
+  (llm as any).stream = async (_msgs: any, onChunk: (t: string) => void) => {
+    onChunk("Hello ");
+    onChunk("world");
+    return "Hello world";
+  };
+
+  const agent = new Agent({ name: "S", system: "s", llm });
+  const reply = await agent.run("hi", (chunk) => chunks.push(chunk));
+
+  assert.equal(reply, "Hello world");
+  assert.deepEqual(chunks, ["Hello ", "world"]);
+});
+
+test("streaming: falls back to complete() when no onChunk", async () => {
+  const llm = scriptedLLM(() => "Hello world");
+  (llm as any).stream = async (_msgs: any, onChunk: (t: string) => void) => {
+    onChunk("Hello ");
+    onChunk("world");
+    return "Hello world";
+  };
+
+  const agent = new Agent({ name: "S", system: "s", llm });
+  const reply = await agent.run("hi"); // no onChunk
+
+  assert.equal(reply, "Hello world");
+});

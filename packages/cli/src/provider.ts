@@ -2,7 +2,7 @@
 // Uses Vercel AI SDK under the hood — supports OpenAI, Anthropic, Google, etc.
 
 import { scriptedLLM, type LLMProvider } from "helix-agent";
-import { vercelProvider } from "helix-agent/vercel";
+import { vercelStreamingProvider } from "helix-agent/vercel";
 import { loadConfig } from "./config.js";
 
 export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
@@ -18,7 +18,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   // 1) OpenAI
   const openaiKey = process.env.OPENAI_API_KEY;
   if (openaiKey) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createOpenAIModel(openaiKey, cfg.model ?? "gpt-4o-mini"),
     });
   }
@@ -26,7 +26,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   // 2) Anthropic
   const anthropicKey = process.env.ANTHROPIC_API_KEY;
   if (anthropicKey) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createAnthropicModel(anthropicKey, cfg.model ?? "claude-sonnet-4-20250514"),
     });
   }
@@ -34,7 +34,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   // 3) OpenRouter (via OpenAI SDK with custom base URL)
   const openrouterKey = process.env.OPENROUTER_API_KEY;
   if (openrouterKey) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createOpenAIModel(
         openrouterKey,
         cfg.model ?? "cohere/north-mini-code:free",
@@ -46,7 +46,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   // 4) HuggingFace Inference Providers (via OpenAI SDK)
   const hfToken = process.env.HF_TOKEN;
   if (hfToken) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createOpenAIModel(
         hfToken,
         cfg.model ?? "Qwen/Qwen3-Coder-Next",
@@ -58,7 +58,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   // 5) OpenCode Zen (via OpenAI SDK)
   const zenKey = process.env.OPENCODE_ZEN_API_KEY ?? process.env.OPENCODE_ZEN_KEY;
   if (zenKey) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createOpenAIModel(
         zenKey,
         cfg.model ?? "big-pickle",
@@ -71,7 +71,7 @@ export function loadProvider(opts: { scripted?: boolean } = {}): LLMProvider {
   const customKey = process.env.LLM_API_KEY;
   const customUrl = process.env.LLM_BASE_URL;
   if (customKey && customUrl) {
-    return vercelProvider({
+    return vercelStreamingProvider({
       model: createOpenAIModel(customKey, cfg.model ?? "default", customUrl),
     });
   }

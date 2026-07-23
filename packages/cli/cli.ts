@@ -167,11 +167,15 @@ async function main() {
 
   if (opts.prompt) {
     if (opts.verbose) console.log(`→ prompt: ${opts.prompt}`);
-    const reply = await agent.run(opts.prompt);
+    // Streaming: print chunks as they arrive
+    const onChunk = (text: string) => {
+      process.stdout.write(text);
+    };
+    const reply = await agent.run(opts.prompt, onChunk);
     // Persist this turn
     appendHistory("user", opts.prompt);
     appendHistory("assistant", reply);
-    console.log(`\nHelix: ${reply}`);
+    console.log();
     return;
   }
 

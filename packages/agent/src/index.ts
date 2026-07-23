@@ -23,8 +23,11 @@ export type LLMProvider = {
   // Receives the full message history; returns the model's text reply.
   // If the model wants to call tools, it should emit markers:
   //   @@TOOL@@ <name> <json-or-empty>
-  // (one per tool call; openAIProvider converts native function_calls for you.)
+  // (one per tool call; providers convert native function_calls for you.)
   complete: (messages: ChatMessage[]) => Promise<string>;
+  // Optional streaming variant. If provided, the agent will use this
+  // instead of complete() when available. Chunks are text deltas.
+  stream?: (messages: ChatMessage[], onChunk: (text: string) => void) => Promise<string>;
 };
 
 export type AgentOptions = {
@@ -119,13 +122,13 @@ export class Agent {
   }
 
   /** Run one user turn through the agent (multi-turn + tool loop). */
-  async run(userMessage: string): Promise<string> {
+  async run(
+    userMessage: string,
+    onChunk?: (text: string) => void
+  ): Promise<string> {
     this.history.push({ role: "user", content: userMessage });
 
-    let reply = await this.llm.complete([
-      { role: "system", content: this.system },
-      ...this.history,
-    ]);
+    let reply = await this._callLLM(onChunk);
 
     for (let step = 0; step < this.maxSteps; step++) {
       const calls = this.parseToolCalls(reply);
@@ -158,14 +161,25 @@ export class Agent {
         this.history.push({ role: "tool", content: msg });
       }
 
-      reply = await this.llm.complete([
-        { role: "system", content: this.system },
-        ...this.history,
-      ]);
+      reply = await this._callLLM(onChunk);
     }
 
     this.history.push({ role: "assistant", content: reply });
     return reply;
+  }
+
+  /** Internal: call LLM with streaming support if available. */
+  private async _callLLM(onChunk?: (text: string) => void): Promise<string> {
+    const messages = [
+      { role: "system" as const, content: this.system },
+      ...this.history,
+    ];
+
+    if (this.llm.stream && onChunk) {
+      return this.llm.stream(messages, onChunk);
+    }
+
+    return this.llm.complete(messages);
   }
 
   /** Reset conversation memory. */

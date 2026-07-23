@@ -126,3 +126,83 @@ export function vercelToolProvider(
     },
   };
 }
+
+/**
+ * Create a streaming LLMProvider backed by Vercel AI SDK.
+ *
+ * Uses streamText() for real-time text streaming. Chunks are passed
+ * to the onChunk callback as they arrive. Tool calls are converted
+ * to @@TOOL@@ markers for helix-agent's Agent loop.
+ *
+ * Usage:
+ *   import { vercelStreamingProvider } from "helix-agent/vercel";
+ *   import { openai } from "@ai-sdk/openai";
+ *
+ *   const agent = new Agent({
+ *     llm: vercelStreamingProvider({ model: openai("gpt-4o") }),
+ *     tools: [...],
+ *   });
+ *
+ *   // In your app:
+ *   const reply = await agent.run("Hello", (chunk) => {
+ *     process.stdout.write(chunk);
+ *   });
+ */
+export function vercelStreamingProvider(opts: VercelProviderOpts): LLMProvider {
+  const { model, maxRetries = 2 } = opts;
+
+  return {
+    async complete(messages: ChatMessage[]): Promise<string> {
+      // Fallback: use non-streaming if no onChunk provided
+      const ai = await import("ai");
+      const systemMsg = messages.find((m) => m.role === "system");
+
+      const result = await ai.generateText({
+        model,
+        system: systemMsg?.content,
+        messages: toVercelMessages(messages),
+        maxRetries,
+      });
+
+      return result.text;
+    },
+
+    async stream(
+      messages: ChatMessage[],
+      onChunk: (text: string) => void
+    ): Promise<string> {
+      const ai = await import("ai");
+      const systemMsg = messages.find((m) => m.role === "system");
+
+      const result = await ai.streamText({
+        model,
+        system: systemMsg?.content,
+        messages: toVercelMessages(messages),
+        maxRetries,
+      });
+
+      let fullText = "";
+      let toolCalls: any[] = [];
+
+      for await (const chunk of result.textStream) {
+        fullText += chunk;
+        onChunk(chunk);
+      }
+
+      // Check for tool calls in the full response
+      try {
+        toolCalls = await result.toolCalls;
+      } catch {
+        // toolCalls may not be available on all providers
+      }
+
+      if (toolCalls?.length) {
+        return toolCalls
+          .map((tc: any) => `@@TOOL@@ ${tc.toolName} ${JSON.stringify(tc.args)}`)
+          .join("\n");
+      }
+
+      return fullText;
+    },
+  };
+}

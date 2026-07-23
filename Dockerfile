@@ -22,8 +22,8 @@ RUN bun install
 
 # ── Builder: compile static binaries ───────────────────────────────────────
 FROM base AS build
-# 1) Build all packages so runtime deps (helix-core, helix-mcp, agent) have dist/.
-RUN bunx turbo run build
+# 1) Build packages needed by the CLI and web Dashboard.
+RUN bunx turbo run build --filter=helix-agent-cli... --filter=helix-web...
 # 2) Build the web UI (Vite -> static assets in packages/web/dist).
 RUN cd packages/web && bun run build
 # 3) Compile self-contained executables (no Bun runtime needed at runtime).

@@ -1,0 +1,52 @@
+import React, { useState } from "react";
+import { api } from "./api.js";
+import { ConfigSection } from "./sections/Config.js";
+import { KeysSection } from "./sections/Keys.js";
+import { SkillsSection } from "./sections/Skills.js";
+import { McpSection } from "./sections/Mcp.js";
+import { FilesSection } from "./sections/Files.js";
+
+type SectionId = "config" | "keys" | "skills" | "mcp" | "files";
+
+const NAV: { id: SectionId; label: string; icon: string }[] = [
+  { id: "config", label: "Config", icon: "⚙" },
+  { id: "keys", label: "API Keys", icon: "🔑" },
+  { id: "skills", label: "Skills", icon: "✦" },
+  { id: "mcp", label: "MCP", icon: "🔌" },
+  { id: "files", label: "Files", icon: "📁" },
+];
+
+export function App() {
+  const [active, setActive] = useState<SectionId>("config");
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="dot" /> helix<span className="brand-sub">dashboard</span>
+        </div>
+        <nav>
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              className={active === n.id ? "nav-item active" : "nav-item"}
+              onClick={() => setActive(n.id)}
+            >
+              <span className="nav-icon">{n.icon}</span>
+              {n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-foot">helix-web · v0.1.0</div>
+      </aside>
+
+      <main className="content">
+        {active === "config" && <ConfigSection />}
+        {active === "keys" && <KeysSection />}
+        {active === "skills" && <SkillsSection />}
+        {active === "mcp" && <McpSection />}
+        {active === "files" && <FilesSection />}
+      </main>
+    </div>
+  );
+}

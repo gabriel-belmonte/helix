@@ -1,0 +1,57 @@
+---
+title: Dashboard (Web)
+description: Ejecuta el dashboard web de Helix — un panel de control para config, API keys, skills, servidores MCP y archivos.
+sidebar:
+  order: 3
+---
+
+# Dashboard (Web)
+
+Helix incluye un **dashboard** web — un panel de control (al estilo Hermes)
+para gestionar tu agente sin tocar la terminal. Es una UI fina sobre el mismo
+estado en disco que usa la CLI, así que los cambios aquí se reflejan en todas
+partes.
+
+## Secciones
+
+- **Config** — provider, model y base URLs (`~/.helix/config.json`).
+- **API Keys** — listar / añadir / quitar keys (`~/.helix/auth.json`, chmod 600).
+  Enmascaradas con fingerprint sha256; las env vars siguen ganando.
+- **Skills** — skills descubiertas en `~/.helix/skills`, `./skills`,
+  `~/.claude/skills`, `~/.agents/skills` (compatibles con skills.sh / OpenCode).
+- **MCP** — servidores de `~/.helix/helix.mcp.json`.
+- **Files** — explorar la raíz del proyecto.
+
+## Ejecutarlo
+
+```bash
+cd packages/web
+bun install
+bun run dev      # UI de Vite en :5173, API en :8799 (proxied)
+```
+
+O sirve el build de producción en un solo puerto:
+
+```bash
+bun run build    # genera dist/
+bun run start    # sirve UI + API en :8799
+```
+
+Luego abre http://localhost:8799.
+
+> **Nota de puerto:** el `:8787` lo usa el Firecrawl local de Hermes en esta
+> máquina, así que el dashboard de Helix usa `:8799` por defecto. Override con
+> `PORT=... bun run start`.
+
+## Arquitectura
+
+`helix-web` es un proceso mínimo (Hono + React/Vite):
+
+- **API** (`server/index.ts`) — REST sobre los archivos reales de Helix:
+  config, auth, skills, MCP, files. Cada endpoint llama a `helix-core` /
+  `helix-mcp` / los helpers de config de la CLI.
+- **UI** (`src/`) — SPA de React con sidebar y un componente por sección.
+
+Un solo puerto sirve tanto el dashboard como la API JSON.
+
+➡️ Volver a: [MCP](/helix/mcp/)

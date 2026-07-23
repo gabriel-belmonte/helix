@@ -14,7 +14,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - run: npm install @rollup/rollup-linux-x64-gnu --save-optional
-      - run: npm run build
-      - run: npm run test
+      - name: Install Bun
+        run: curl -fsSL https://bun.sh/install | bash
+      - name: Add Bun to PATH
+        run: echo "$HOME/.bun/bin" >> $GITHUB_PATH
+      - run: bun install
+      - run: bunx turbo run build
+      - run: bunx turbo run test

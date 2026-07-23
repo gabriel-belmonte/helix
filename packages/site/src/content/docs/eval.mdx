@@ -118,13 +118,68 @@ console.log(cmp.winner, cmp.delta.deltaScore);
 const scorer = makeLlmJudge((prompt) => judgeModel.complete(prompt));
 ```
 
-## Tips
+## Real example (run against OpenCode Zen free models)
 
-- **Cost is only counted if you set `costPer1kPrompt` / `costPer1kCompletion`**
-  on each case. Leave them at `0` for free models (that's the default).
-- **Latency includes network round-trip** to the provider — run several times
-  and average for stable numbers.
-- **Keep suites small and high-signal.** 5–10 hand-picked cases beat 1000 noisy
-  ones. This is regression detection, not a benchmark leaderboard.
-- **`--scripted`** runs the built-in deterministic LLM (no network, no keys) —
-  great for testing your suite shape before spending tokens.
+These numbers come from an actual `helix eval` run comparing two free Zen
+models on a 4-case coding suite (`fib`, `debounce`, `reverse-words`, `http-server`):
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare north-mini-code-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs north-mini-code-free (B) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     4/4  vs  4/4  (Δ +0)
+  avgLatency: 8375ms  vs  19692ms  (Δ +11317ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     deepseek-v4-flash-free
+```
+
+Both models produced correct code (score 1.000), but `deepseek-v4-flash-free`
+answered **2.3× faster**, so it wins the A/B. This is exactly the kind of
+decision eval is for: when quality is tied, pick the cheaper/faster model.
+
+### With an LLM judge
+
+Adding `--judge` swaps the naive substring check for a real quality grade
+(0..1) on every output:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare mimo-v2.5-free \
+  --judge deepseek-v4-flash-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs mimo-v2.5-free (B) (LLM-judged) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     5/5  vs  5/5  (Δ +0)
+  avgLatency: 31380ms  vs  21455ms  (Δ -9926ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     mimo-v2.5-free
+```
+
+On a harder 5-case suite, `mimo-v2.5-free` was the faster model, so it wins the
+tie. The judge confirms both outputs are correct; latency breaks the tie.
+
+> **How the judge works:** for each case, `makeLlmJudge` sends the model a
+> prompt with the task input, the `expected` reference text, and the agent
+> output, then parses a `0.0–1.0` number from the reply. It catches
+> plausible-but-wrong code that substring matching would pass.
+
+## When to use eval
+
+| Goal | Use |
+|------|-----|
+| "Did my prompt change break anything?" | run `helix eval` on a fixed suite after each change; watch `avgScore`. |
+| "Which model should I ship?" | `helix eval --compare` two candidates on the same suite. |
+| "Is the cheaper model good enough?" | compare a paid model vs a free one with `--judge` for fair scoring. |
+| "Is latency acceptable?" | read `avgLatency` per model; it includes the network round-trip. |
+
+Eval is **regression detection, not a leaderboard** — keep suites small (5–10
+high-signal cases) and re-run them in CI so a bad model/prompt change fails the
+build before users see it.

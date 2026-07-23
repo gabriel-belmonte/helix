@@ -119,6 +119,75 @@ console.log(cmp.winner, cmp.delta.deltaScore);
 const scorer = makeLlmJudge((prompt) => judgeModel.complete(prompt));
 ```
 
+## Ejemplo real (ejecutado contra modelos gratuitos de OpenCode Zen)
+
+Estos números vienen de una ejecución real de `helix eval` comparando dos
+modelos Zen gratuitos en una suite de 4 casos de código (`fib`, `debounce`,
+`reverse-words`, `http-server`):
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare north-mini-code-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs north-mini-code-free (B) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     4/4  vs  4/4  (Δ +0)
+  avgLatency: 8375ms  vs  19692ms  (Δ +11317ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     deepseek-v4-flash-free
+```
+
+Ambos modelos generaron código correcto (score 1.000), pero
+`deepseek-v4-flash-free` respondió **2.3× más rápido**, así que gana el A/B.
+Este es justo el tipo de decisión para la que sirve eval: cuando la calidad
+empata, eliges el modelo más barato/rápido.
+
+### Con juez LLM
+
+Añadir `--judge` cambia el chequeo naive por substring por una nota de calidad
+real (0..1) en cada salida:
+
+```bash
+helix eval --suite coding.json \
+  --model deepseek-v4-flash-free \
+  --compare mimo-v2.5-free \
+  --judge deepseek-v4-flash-free
+```
+
+```
+=== Eval A/B — deepseek-v4-flash-free (A) vs mimo-v2.5-free (B) (LLM-judged) ===
+  avgScore:   1.000  vs  1.000  (Δ +0.000)
+  passed:     5/5  vs  5/5  (Δ +0)
+  avgLatency: 31380ms  vs  21455ms  (Δ -9926ms)
+  totalCost:  $0.0000  vs  $0.0000  (Δ +0.0000$)
+  winner:     mimo-v2.5-free
+```
+
+En una suite más difícil de 5 casos, `mimo-v2.5-free` fue el modelo más rápido,
+así que gana el empate. El juez confirma que ambas salidas son correctas; la
+latencia desempata.
+
+> **Cómo funciona el juez:** para cada caso, `makeLlmJudge` envía al modelo un
+> prompt con el input de la tarea, el texto `expected` (referencia) y la salida
+> del agente, y parsea un número `0.0–1.0` de la respuesta. Detecta código
+> *plausible pero incorrecto* que el matching por substring dejaría pasar.
+
+## Cuándo usar eval
+
+| Objetivo | Usa |
+|----------|-----|
+| "¿Mi cambio de prompt rompió algo?" | ejecuta `helix eval` en una suite fija tras cada cambio; vigila `avgScore`. |
+| "¿Qué modelo debo enviar a prod?" | `helix eval --compare` dos candidatos en la misma suite. |
+| "¿El modelo barato es suficientemente bueno?" | compara uno de pago vs uno gratuito con `--judge` para scoring justo. |
+| "¿La latencia es aceptable?" | lee `avgLatency` por modelo; incluye el round-trip de red. |
+
+Eval es **detección de regresiones, no un ranking** — mantén las suites
+pequeñas (5–10 casos de alta señal) y re-ejecútalas en CI para que un cambio
+malo de modelo/prompt falle el build antes de que lo vean los usuarios.
+
 ## Consejos
 
 - **El coste solo se cuenta si fijas `costPer1kPrompt` / `costPer1kCompletion`**

@@ -1,5 +1,12 @@
 # 🧬 helix
 
+[![CI](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/written%20in-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
+[![MCP](https://img.shields.io/badge/MCP-ready-00b894.svg)](https://modelcontextprotocol.io/)
+[![skills.sh compatible](https://img.shields.io/badge/skills.sh-compatible-ff4785.svg)](https://skills.sh/)
+[![Bun](https://img.shields.io/badge/toolchain-Bun%201.3.14-000000.svg)](https://bun.sh/)
+
 **A coding agent you can actually read.**
 
 Minimal, transparent TypeScript agent framework — a single readable core that

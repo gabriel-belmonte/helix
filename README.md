@@ -7,6 +7,7 @@
 [![skills.sh compatible](https://img.shields.io/badge/skills.sh-compatible-ff4785.svg)](https://skills.sh/)
 [![Bun](https://img.shields.io/badge/toolchain-Bun%201.3.14-000000.svg)](https://bun.sh/)
 [![Sponsor](https://img.shields.io/badge/sponsor-Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=000)](https://buymeacoffee.com/gabrielbelmonte)
+[![Sponsor](https://img.shields.io/badge/sponsor-Ko--fi-29abe0?logo=ko-fi&logoColor=fff)](https://ko-fi.com/gabrielbelmonte)
 
 **A coding agent you can actually read.**
 
@@ -132,5 +133,6 @@ MIT © gabriel-belmonte
 If Helix saves you time, you can support its development:
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=000)](https://buymeacoffee.com/gabrielbelmonte)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-29abe0?style=for-the-badge&logo=ko-fi&logoColor=fff)](https://ko-fi.com/gabrielbelmonte)
 
-➡️ https://buymeacoffee.com/gabrielbelmonte
+➡️ https://buymeacoffee.com/gabrielbelmonte · https://ko-fi.com/gabrielbelmonte

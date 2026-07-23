@@ -117,6 +117,7 @@ export default defineConfig({
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/gabriel-belmonte/helix" },
         { icon: "heart", label: "Sponsor (Buy me a coffee)", href: "https://buymeacoffee.com/gabrielbelmonte" },
+        { icon: "heart", label: "Sponsor (Ko-fi)", href: "https://ko-fi.com/gabrielbelmonte" },
       ],
     }),
     mdx(),

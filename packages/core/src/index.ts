@@ -13,3 +13,5 @@ export { makeMemoryTools, readSoul, JsonlMemoryStore } from "helix-memory";
 export type { MemoryStore, MemoryEntry, MemoryType } from "helix-memory";
 export * from "./zen.js";
 export * from "./router.js";
+export * from "./caveman.js";
+export * from "./rtk.js";

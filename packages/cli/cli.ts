@@ -5,6 +5,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, ZEN_MODELS, fetchZenModels, isFreeModel, type HelixPlugin } from "helix-core";
 import { makeMcpPlugin } from "helix-mcp";
+import { makeCavemanPlugin, makeRtkPlugin } from "helix-core";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -370,6 +371,11 @@ function printStatus(cfg: HelixConfig) {
   if (cfg.fallback && cfg.fallback.length > 0) {
     console.log(`  ${chalk.cyan("fallback")} [${cfg.fallback.join(", ")}]`);
   }
+  const feats = cfg.features ?? {};
+  const activeFeats = Object.entries(feats).filter(([, v]) => v).map(([k]) => k);
+  if (activeFeats.length > 0) {
+    console.log(`  ${chalk.cyan("features")} ${activeFeats.join(", ")}`);
+  }
   console.log();
   console.log(chalk.bold("API keys"));
   for (const c of creds) {
@@ -544,6 +550,18 @@ async function main() {
     } catch (e: any) {
       console.warn(chalk.yellow("!") + ` failed to parse ${mcpPath}: ${e.message}`);
     }
+  }
+
+  // Optional compression plugins (toggled via config.features).
+  const cfg = loadConfig();
+  const feats = cfg.features ?? {};
+  if (feats.caveman) {
+    plugins.push(makeCavemanPlugin());
+    console.log(chalk.gray(`[caveman] tool output compression enabled`));
+  }
+  if (feats.rtk) {
+    plugins.push(makeRtkPlugin());
+    console.log(chalk.gray(`[rtk] tool output compression enabled`));
   }
 
   const agent = await buildAgent(llm, {

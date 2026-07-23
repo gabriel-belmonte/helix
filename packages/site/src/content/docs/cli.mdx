@@ -54,6 +54,24 @@ When `fallback` is set, Helix tries each entry in order. If the first model
 errors, it moves to the next — so you always have a working model. See
 [`helix status`](#status) for the active chain.
 
+## Compression
+
+Helix ships two optional compression plugins that save tokens on tool output:
+
+| Plugin | What it does | Savings | Enable in config |
+|--------|-------------|---------|-----------------|
+| **Caveman** | Drops articles, shortens words, removes filler. Ultra-compact speak. | 40–60% | `"features": {"caveman": true}` |
+| **RTK** | Truncates long lines, condenses lists to head+tail, collapses whitespace. | 30–70% | `"features": {"rtk": true}` |
+
+```bash
+# Enable both in ~/.helix/config.json:
+# { "features": { "caveman": true, "rtk": true } }
+```
+
+They stack: RTK runs first (structural compression), then Caveman (textual
+compression). Together they can reduce tool output tokens by **50–80%** with
+minimal information loss.
+
 ## API keys (auth)
 
 ```bash

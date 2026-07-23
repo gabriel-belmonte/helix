@@ -16,6 +16,8 @@ export type HelixConfig = {
   /** Ordered list of "{provider}:{model}" fallbacks. When set, the router
    *  tries each one in sequence until one succeeds. */
   fallback?: string[];
+  /** Optional feature toggles (caveman, rtk, …). */
+  features?: Record<string, boolean>;
 };
 
 export function loadConfig(): HelixConfig {

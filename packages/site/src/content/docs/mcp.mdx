@@ -1,0 +1,84 @@
+---
+title: MCP (Model Context Protocol)
+description: Connect Helix to any MCP server and use its tools as if they were local.
+sidebar:
+  order: 1
+---
+
+# MCP (Model Context Protocol)
+
+Helix supports **MCP** — the open standard (by Anthropic) that lets an agent
+call tools exposed by external servers. With `helix-mcp`, every tool a server
+offers becomes a local Helix tool, namespaced as `<server>__<tool>`.
+
+This means Helix can drive thousands of existing MCP servers (filesystem,
+GitHub, databases, browsers, …) without any code changes.
+
+## Install
+
+```bash
+bun add helix-mcp
+```
+
+`helix-mcp` ships a `makeMcpPlugin(config)` that returns a `HelixPlugin`.
+
+## Configure
+
+Create `helix.mcp.json` in your project root **or** in `~/.helix/`. The CLI
+loads it automatically:
+
+```json
+{
+  "servers": {
+    "fs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    "remote": {
+      "type": "http",
+      "url": "https://my-mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer ..." }
+    }
+  }
+}
+```
+
+### Server shapes
+
+| `type` | Fields | Use |
+|--------|--------|-----|
+| `stdio` | `command`, `args?`, `env?` | A subprocess (most common) |
+| `http` | `url`, `headers?` | Streamable HTTP server |
+| `sse` | `url`, `headers?` | Server-Sent Events server |
+
+## How it works
+
+1. At startup, `makeMcpPlugin` connects to each server (`client.connect`).
+2. It calls `client.listTools()` and registers one local tool per remote tool.
+3. When the agent calls `<server>__<tool>`, the plugin proxies the call to
+   `client.callTool(...)` and returns the server's text content.
+
+Tools keep their JSON `inputSchema`, so the model sees the parameters in the
+system prompt (`params: text, …`).
+
+## Programmatic use
+
+```ts
+import { buildAgent } from "helix-core";
+import { makeMcpPlugin } from "helix-mcp";
+import { myLLM } from "./provider";
+
+const agent = await buildAgent(myLLM, {
+  config: {},
+  plugins: [
+    makeMcpPlugin({
+      servers: {
+        fs: { type: "stdio", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] },
+      },
+    }),
+  ],
+});
+```
+
+➡️ Next: [Skills](/helix/skills/)

@@ -7,4 +7,5 @@ export * from "./web_extract.js";
 export * from "./web-infra.js";
 export * from "./provider.js";
 export * from "./auth.js";
+export * from "./skill.js";
 export * from "./agent.js";

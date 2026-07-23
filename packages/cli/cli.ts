@@ -3,7 +3,8 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH } from "helix-core";
+import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, type HelixPlugin } from "helix-core";
+import { makeMcpPlugin } from "helix-mcp";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -11,6 +12,9 @@ import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
 import type { ChatMessage } from "helix-agent";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 
 interface CliOpts {
   prompt?: string;
@@ -291,10 +295,29 @@ async function main() {
     content: e.content,
   }));
 
+  // Load MCP servers from ~/.helix/helix.mcp.json or ./helix.mcp.json.
+  const plugins: HelixPlugin[] = [];
+  const mcpPath = (() => {
+    const local = join(process.cwd(), "helix.mcp.json");
+    const home = join(homedir(), ".helix", "helix.mcp.json");
+    return existsSync(local) ? local : existsSync(home) ? home : null;
+  })();
+  if (mcpPath) {
+    try {
+      const raw = JSON.parse(readFileSync(mcpPath, "utf8"));
+      const servers = raw.servers ?? raw; // accept {servers:{}} or bare map
+      plugins.push(makeMcpPlugin({ servers }));
+      console.log(chalk.gray(`[mcp] loaded from ${mcpPath}`));
+    } catch (e: any) {
+      console.warn(chalk.yellow("!") + ` failed to parse ${mcpPath}: ${e.message}`);
+    }
+  }
+
   const agent = await buildAgent(llm, {
     config: {
       web: { search: !!opts.webSearch, extract: !!opts.webExtract },
     },
+    plugins,
     onToolCall,
     initialHistory,
   });

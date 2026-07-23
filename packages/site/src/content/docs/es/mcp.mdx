@@ -1,0 +1,85 @@
+---
+title: MCP (Model Context Protocol)
+description: Conecta Helix a cualquier servidor MCP y usa sus herramientas como si fueran locales.
+sidebar:
+  order: 1
+---
+
+# MCP (Model Context Protocol)
+
+Helix soporta **MCP** — el estándar abierto (de Anthropic) que permite a un
+agente llamar herramientas expuestas por servidores externos. Con `helix-mcp`,
+cada herramienta que ofrece un servidor se convierte en una tool local de
+Helix, con namespace `<server>__<tool>`.
+
+Esto significa que Helix puede usar miles de servidores MCP existentes
+(filesystem, GitHub, bases de datos, navegadores, …) sin cambios de código.
+
+## Instalar
+
+```bash
+bun add helix-mcp
+```
+
+`helix-mcp` expone `makeMcpPlugin(config)` que devuelve un `HelixPlugin`.
+
+## Configurar
+
+Crea `helix.mcp.json` en la raíz del proyecto **o** en `~/.helix/`. La CLI lo
+carga automáticamente:
+
+```json
+{
+  "servers": {
+    "fs": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    },
+    "remote": {
+      "type": "http",
+      "url": "https://my-mcp.example.com/mcp",
+      "headers": { "Authorization": "Bearer ..." }
+    }
+  }
+}
+```
+
+### Formas de servidor
+
+| `type` | Campos | Uso |
+|--------|--------|-----|
+| `stdio` | `command`, `args?`, `env?` | Un subproceso (lo más común) |
+| `http` | `url`, `headers?` | Servidor Streamable HTTP |
+| `sse` | `url`, `headers?` | Servidor Server-Sent Events |
+
+## Cómo funciona
+
+1. Al arrancar, `makeMcpPlugin` conecta a cada servidor (`client.connect`).
+2. Llama a `client.listTools()` y registra una tool local por tool remota.
+3. Cuando el agente llama `<server>__<tool>`, el plugin hace proxy a
+   `client.callTool(...)` y devuelve el contenido de texto del servidor.
+
+Las tools conservan su `inputSchema` JSON, así el modelo ve los parámetros en
+el system prompt (`params: text, …`).
+
+## Uso programático
+
+```ts
+import { buildAgent } from "helix-core";
+import { makeMcpPlugin } from "helix-mcp";
+import { myLLM } from "./provider";
+
+const agent = await buildAgent(myLLM, {
+  config: {},
+  plugins: [
+    makeMcpPlugin({
+      servers: {
+        fs: { type: "stdio", command: "npx", args: ["-y", "@modelcontextprotocol/server-filesystem", "."] },
+      },
+    }),
+  ],
+});
+```
+
+➡️ Siguiente: [Skills](/helix/skills/)

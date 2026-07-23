@@ -40,6 +40,13 @@ export default defineConfig({
           ],
         },
         {
+          label: "Integrations",
+          items: [
+            { label: "MCP (Model Context Protocol)", link: "/helix/mcp/" },
+            { label: "Skills", link: "/helix/skills/" },
+          ],
+        },
+        {
           label: "Extending Helix",
           items: [
             { label: "Plugin system", link: "/helix/plugins/" },

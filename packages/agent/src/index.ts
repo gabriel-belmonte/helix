@@ -17,6 +17,10 @@ export type Tool = {
   name: string;
   description: string;
   run: (input: unknown) => Promise<unknown>;
+  // Optional JSON-schema describing the tool's input. Used by MCP and other
+  // structured-tool sources so the model knows the parameters. When present,
+  // it is surfaced in the system prompt; when absent, free-form input is used.
+  schema?: Record<string, unknown>;
 };
 
 export type LLMProvider = {

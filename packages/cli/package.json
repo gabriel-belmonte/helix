@@ -35,6 +35,7 @@
     "commander": "^15.0.0",
     "helix-agent": "*",
     "helix-core": "*",
+    "helix-mcp": "*",
     "ora": "^9.4.1"
   },
   "devDependencies": {

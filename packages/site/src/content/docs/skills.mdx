@@ -1,0 +1,74 @@
+---
+title: Skills
+description: Specialized instruction sets Helix can load on demand — à la OpenCode/Hermes.
+sidebar:
+  order: 2
+---
+
+# Skills
+
+A **skill** is a folder with a `SKILL.md` file that holds *specialized
+instructions* for a specific kind of task. Skills are **not tools** — they are
+guidance the agent pulls into context when a task matches.
+
+The design mirrors OpenCode / Hermes: a compact list of available skills is
+shown in the system prompt, and the agent calls `use_skill(name)` to load the
+full instructions when relevant.
+
+## Format
+
+```
+skills/
+  my-skill/
+    SKILL.md
+```
+
+`SKILL.md` uses a tiny YAML frontmatter (`name` + `description`) followed by the
+instructions:
+
+```markdown
+---
+name: my-skill
+description: Use when the user asks about X, Y, or Z
+---
+
+# My Skill
+
+Detailed workflow / domain knowledge the agent should follow.
+```
+
+- `name` — how the agent references the skill (and what `use_skill` takes).
+- `description` — the self-selection hint the model reads to decide *when* to
+  load the skill. Write this for the model, not for humans.
+
+## Where skills live
+
+Helix scans these directories automatically:
+
+- `~/.helix/skills` — your personal skills
+- `./skills` — project-local skills (committed with the repo)
+
+You can add more via `buildAgent({ skillDirs: [...] })`.
+
+## How it works
+
+1. At startup, Helix discovers every `SKILL.md` and renders an
+   `<available_skills>` block into the system prompt.
+2. When a task matches a description, the agent calls `use_skill(name)`.
+3. `use_skill` returns the skill's body, which the agent then follows.
+
+The `use_skill` tool is added automatically — you don't register it yourself.
+
+## Programmatic use
+
+```ts
+import { buildAgent } from "helix-core";
+import { myLLM } from "./provider";
+
+const agent = await buildAgent(myLLM, {
+  config: {},
+  skillDirs: ["./skills", "/path/to/more/skills"],
+});
+```
+
+➡️ Back to: [MCP](/helix/mcp/)

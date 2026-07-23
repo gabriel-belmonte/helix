@@ -1,0 +1,74 @@
+---
+title: Skills
+description: Conjuntos de instrucciones especializadas que Helix carga bajo demanda — al estilo OpenCode/Hermes.
+sidebar:
+  order: 2
+---
+
+# Skills
+
+Una **skill** es una carpeta con un `SKILL.md` que contiene *instrucciones
+especializadas* para un tipo concreto de tarea. Las skills **no son tools** —
+son guía que el agente trae al contexto cuando una tarea encaja.
+
+El diseño imita a OpenCode / Hermes: una lista compacta de skills disponibles
+aparece en el system prompt, y el agente llama a `use_skill(name)` para cargar
+las instrucciones completas cuando hace falta.
+
+## Formato
+
+```
+skills/
+  my-skill/
+    SKILL.md
+```
+
+`SKILL.md` usa un frontmatter YAML mínimo (`name` + `description`) seguido de
+las instrucciones:
+
+```markdown
+---
+name: my-skill
+description: Úsala cuando el usuario pregunte sobre X, Y o Z
+---
+
+# My Skill
+
+Flujo de trabajo / conocimiento de dominio detallado que el agente debe seguir.
+```
+
+- `name` — cómo referencia el agente la skill (y lo que recibe `use_skill`).
+- `description` — la pista de autoselección que el modelo lee para decidir
+  *cuándo* cargar la skill. Escríbela para el modelo, no para humanos.
+
+## Dónde viven las skills
+
+Helix escanea estas carpetas automáticamente:
+
+- `~/.helix/skills` — tus skills personales
+- `./skills` — skills del proyecto (commiteadas con el repo)
+
+Puedes añadir más vía `buildAgent({ skillDirs: [...] })`.
+
+## Cómo funciona
+
+1. Al arrancar, Helix descubre cada `SKILL.md` y renderiza un bloque
+   `<available_skills>` en el system prompt.
+2. Cuando una tarea encaja con una descripción, el agente llama `use_skill(name)`.
+3. `use_skill` devuelve el body de la skill, que el agente entonces sigue.
+
+La tool `use_skill` se añade automáticamente — no la registras tú.
+
+## Uso programático
+
+```ts
+import { buildAgent } from "helix-core";
+import { myLLM } from "./provider";
+
+const agent = await buildAgent(myLLM, {
+  config: {},
+  skillDirs: ["./skills", "/path/to/more/skills"],
+});
+```
+
+➡️ Volver a: [MCP](/helix/mcp/)

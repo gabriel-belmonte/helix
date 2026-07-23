@@ -72,6 +72,34 @@ They stack: RTK runs first (structural compression), then Caveman (textual
 compression). Together they can reduce tool output tokens by **50–80%** with
 minimal information loss.
 
+## Web search
+
+Helix can search the web with two tools: `web_search` (search engine) and
+`web_extract` (page content). Enable them per-command with the `--web` flag:
+
+```bash
+helix --web -p "search for latest TypeScript news"
+helix --web-search -p "what is the weather in London?"  # search only
+helix --web-extract -p "summarize https://example.com"   # extract only
+```
+
+To keep web enabled **by default** (no `--web` flag needed), add it to config:
+
+```bash
+# Via CLI:
+helix config set web '{"search":true,"extract":true}'
+
+# Or edit ~/.helix/config.json:
+#   { "web": { "search": true, "extract": true } }
+```
+
+CLI flags (`--web`, `--web-search`, `--web-extract`) always take precedence
+over the stored config — use them to temporarily override.
+
+Web tools need a running SearXNG instance (or other search backend). The
+containerized Helix Dashboard ships with one; standalone users can point
+Helix at their own via `infra` config.
+
 ## API keys (auth)
 
 ```bash

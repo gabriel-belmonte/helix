@@ -280,7 +280,9 @@ async function handleModels(opts: CliOpts) {
   }
 
   // Fetch live catalog; fall back to curated list offline.
-  const models = await fetchZenModels().catch(() => ZEN_MODELS);
+  const spinner = ora({ text: "Fetching model catalog…", color: "cyan" }).start();
+  const models = await fetchZenModels().catch(() => { spinner.warn("offline — using cached models"); return ZEN_MODELS; });
+  spinner.stop();
   const current = loadConfig().model;
 
   console.log(chalk.bold("OpenCode Zen models") + chalk.gray(` (${models.length} available)`));
@@ -364,7 +366,7 @@ function printVersion() {
 }
 
 // Show the active provider + model and whether each provider's API key is set.
-function printStatus(cfg: HelixConfig) {
+async function printStatus(cfg: HelixConfig) {
   const creds = listCredentials();
   const active = cfg.provider ?? "(unset)";
   const activeModel = cfg.model ?? "(unset)";
@@ -391,14 +393,37 @@ function printStatus(cfg: HelixConfig) {
     const fp = c.fingerprint ? chalk.gray(`  ${c.fingerprint}`) : "";
     console.log(`  ${mark.padEnd(10)} ${chalk.bold(c.provider.padEnd(11))} ${src}${fp}`);
   }
-  console.log(chalk.gray("\n  ● set   ○ not set"));
+  console.log(chalk.gray("  ● set   ○ not set"));
   console.log(chalk.gray("  env vars take precedence over stored keys."));
+
+  // Web infra status.
+  await statusWebInfra();
+}
+
+/** Check web infrastructure (SearXNG + extract server) and print status. */
+async function statusWebInfra() {
+  const spinner = ora({ text: "Checking web infra…", color: "cyan" }).start();
+  const searxngUrl = "http://127.0.0.1:8888";
+  const extractUrl = "http://127.0.0.1:8787";
+  const [searxngUp, extractUp] = await Promise.all([
+    fetch(searxngUrl + "/search?q=test&format=json", { signal: AbortSignal.timeout(2000) })
+      .then((r) => r.ok).catch(() => false),
+    fetch(extractUrl + "/health", { signal: AbortSignal.timeout(2000) })
+      .then((r) => r.ok).catch(() => false),
+  ]);
+  spinner.stop();
+
+  const sx = searxngUp ? chalk.green("● online") : chalk.gray("○ offline");
+  const ex = extractUp ? chalk.green("● online") : chalk.gray("○ offline");
+  console.log(`\n${chalk.bold("Web infra")}`);
+  console.log(`  ${chalk.cyan("web_search")}  ${searxngUrl.padEnd(24)} ${sx}`);
+  console.log(`  ${chalk.cyan("web_extract")} ${extractUrl.padEnd(24)} ${ex}`);
 }
 
 // Launch the Helix Dashboard (web control panel) on :8799.
 // In a dev checkout it spawns the workspace server with Bun; in a standalone
 // binary it detects Docker and offers to run the containerized dashboard.
-function runDashboard() {
+async function runDashboard() {
   const PORT = process.env.PORT ?? "8799";
   const here = import.meta.dirname ?? ".";
 
@@ -406,13 +431,21 @@ function runDashboard() {
   const serverCandidate = join(here, "../web/server/index.ts");
   const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
   if (existsSync(serverCandidate) && bun) {
-    console.log(chalk.green("✓") + ` launching Helix Dashboard on http://localhost:${PORT}`);
-    console.log(chalk.gray("  (Ctrl+C to stop)\n"));
+    const sp = ora({ text: "Starting Helix Dashboard…", color: "cyan" }).start();
     const child = spawn(bun, [serverCandidate], {
-      stdio: "inherit",
+      stdio: "ignore",
       env: { ...process.env, PORT },
     });
-    child.on("exit", (code) => process.exit(code ?? 0));
+    // Wait a moment then check if it's up.
+    await new Promise((r) => setTimeout(r, 2000));
+    const ok = await fetch(`http://localhost:${PORT}/api/health`)
+      .then((r) => r.ok).catch(() => false);
+    if (ok) {
+      sp.succeed(`Helix Dashboard running on http://localhost:${PORT}`);
+    } else {
+      sp.warn("Dashboard may still be starting…");
+    }
+    child.unref();
     return;
   }
 
@@ -420,6 +453,7 @@ function runDashboard() {
   const dockerPaths = ["docker", "/usr/bin/docker", "/usr/local/bin/docker"];
   const hasDocker = dockerPaths.some((p) => existsSync(p));
   if (hasDocker) {
+    const sp = ora({ text: "Starting Helix Dashboard (Docker)…", color: "cyan" }).start();
     const configVol = join(homedir(), ".helix");
     console.log(chalk.green("✓") + " Docker detected — starting the Helix Dashboard container...\n");
     console.log(chalk.gray(`  Dashboard → http://localhost:${PORT}`));
@@ -526,13 +560,13 @@ async function main() {
 
   // Status: active provider/model + which API keys are configured.
   if (opts.status) {
-    printStatus(loadConfig());
+    await printStatus(loadConfig());
     return;
   }
 
   // Dashboard: launch the web control panel.
   if (opts.dashboard) {
-    runDashboard();
+    await runDashboard();
     return;
   }
 
@@ -662,7 +696,11 @@ async function main() {
 
   const agent = await buildAgent(llm, {
     config: {
-      web: { search: !!opts.webSearch, extract: !!opts.webExtract },
+      // Merge config.web with CLI flags (flags win over stored config).
+      web: {
+        search: opts.webSearch ?? cfg.web?.search ?? false,
+        extract: opts.webExtract ?? cfg.web?.extract ?? false,
+      },
     },
     plugins,
     onToolCall,

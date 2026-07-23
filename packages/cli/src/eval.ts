@@ -5,6 +5,7 @@
 // is forced via the HELIX_MODEL env var so `--model` can point A/B at different
 // models without mutating ~/.helix/config.json.
 
+import ora from "ora";
 import { loadProvider } from "./provider.js";
 import { runEval, compareEval, makeLlmJudge, type EvalCase, type Scorer } from "helix-agent-eval";
 import { readFileSync, existsSync } from "node:fs";
@@ -93,9 +94,12 @@ export async function handleEval(opts: EvalCliOpts) {
   }
 
   // A/B run.
+  const spinner = ora({ text: `Evaluating A: ${opts.model ?? "(default)"}…`, color: "cyan" }).start();
   const runA = await makeRunner(opts.model, opts.scripted);
   const runB = await makeRunner(opts.compare, opts.scripted);
+  spinner.text = `Evaluating B: ${opts.compare}…`;
   const cmp = await compareEval(cases, runA, runB);
+  spinner.succeed("done");
   printCompare(cmp, opts.model ?? "(default)", opts.compare, !!judgeRunner);
 }
 

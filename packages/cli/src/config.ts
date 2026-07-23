@@ -18,6 +18,11 @@ export type HelixConfig = {
   fallback?: string[];
   /** Optional feature toggles (caveman, rtk, …). */
   features?: Record<string, boolean>;
+  /** Enable web search/extract by default (no need for --web flag). */
+  web?: {
+    search?: boolean;
+    extract?: boolean;
+  };
 };
 
 export function loadConfig(): HelixConfig {

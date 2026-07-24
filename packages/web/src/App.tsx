@@ -7,8 +7,9 @@ import { SkillsSection } from "./sections/Skills.js";
 import { McpSection } from "./sections/Mcp.js";
 import { FilesSection } from "./sections/Files.js";
 import { MemorySection } from "./sections/Memory.js";
+import { MonitorSection } from "./sections/Monitor.js";
 
-type SectionId = "chat" | "config" | "keys" | "skills" | "mcp" | "memory" | "files";
+type SectionId = "chat" | "config" | "keys" | "skills" | "mcp" | "memory" | "files" | "monitor";
 
 const NAV: { id: SectionId; label: string; icon: string }[] = [
   { id: "chat", label: "Chat", icon: "💬" },
@@ -18,6 +19,7 @@ const NAV: { id: SectionId; label: string; icon: string }[] = [
   { id: "mcp", label: "MCP", icon: "🔌" },
   { id: "memory", label: "Memory", icon: "🧠" },
   { id: "files", label: "Files", icon: "📁" },
+  { id: "monitor", label: "Monitor", icon: "📊" },
 ];
 
 export function App() {
@@ -52,6 +54,7 @@ export function App() {
         {active === "mcp" && <McpSection />}
         {active === "memory" && <MemorySection />}
         {active === "files" && <FilesSection />}
+        {active === "monitor" && <MonitorSection />}
       </main>
     </div>
   );

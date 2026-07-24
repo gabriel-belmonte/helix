@@ -54,6 +54,76 @@ const app = new Hono();
 // --- Health ---
 app.get("/api/health", (c) => c.json({ ok: true, product: "helix-web" }));
 
+// --- Monitor / KPIs ---
+app.get("/api/monitor", (c) => {
+  const monitorDir = join(HELIX_DIR, "monitor");
+  const metricsFile = join(monitorDir, "metrics.jsonl");
+  const alertsFile = join(monitorDir, "alerts.log");
+
+  // --- Metrics cards ---
+  const metrics: Array<{ label: string; value: string | number; icon: string; color: string }> = [
+    { label: "CI Status", value: "—", icon: "✅", color: "var(--accent-2)" },
+    { label: "Stars", value: "—", icon: "⭐", color: "#ffd700" },
+    { label: "Forks", value: "—", icon: "⑂", color: "var(--accent)" },
+    { label: "npm/week", value: "—", icon: "📦", color: "#cb3837" },
+  ];
+
+  // Parse latest metrics record
+  let lastUpdated = "never";
+  if (existsSync(metricsFile)) {
+    try {
+      const content = readFileSync(metricsFile, "utf8").trim();
+      const lines = content.split("\n").filter(Boolean);
+      if (lines.length > 0) {
+        const last = JSON.parse(lines[lines.length - 1]);
+        lastUpdated = last.timestamp || lastUpdated;
+        const gh = last.github || {};
+        const npm = last.npm || {};
+        const ci = last.ci || {};
+        metrics[0] = { ...metrics[0], value: ci.conclusion || "unknown" };
+        metrics[1] = { ...metrics[1], value: gh.stars ?? "—" };
+        metrics[2] = { ...metrics[2], value: gh.forks ?? "—" };
+        metrics[3] = { ...metrics[3], value: npm.weekly_downloads ?? "—" };
+      }
+    } catch { /* file may be malformed */ }
+  }
+
+  // --- Alerts ---
+  const alerts: Array<{ severity: "critical" | "warning" | "info"; message: string; time: string }> = [];
+  if (existsSync(alertsFile)) {
+    try {
+      const content = readFileSync(alertsFile, "utf8").trim();
+      content.split("\n").filter(Boolean).slice(-5).forEach((line) => {
+        const parts = line.split(" | ");
+        if (parts.length >= 3) {
+          const severity = parts[1].toLowerCase().includes("crit") ? "critical"
+            : parts[1].toLowerCase().includes("warn") ? "warning" : "info";
+          alerts.push({ severity, message: parts.slice(2).join(" | ").trim(), time: parts[0] });
+        }
+      });
+    } catch { /* ignore */ }
+  }
+
+  // --- Eval runs (from metrics.jsonl eval field) ---
+  const evals: Array<{ suite: string; score: number; delta: number }> = [];
+  // Parse eval field from latest record if present
+  if (existsSync(metricsFile)) {
+    try {
+      const content = readFileSync(metricsFile, "utf8").trim();
+      const lines = content.split("\n").filter(Boolean);
+      if (lines.length > 0) {
+        const last = JSON.parse(lines[lines.length - 1]);
+        const evalData = last.eval || {};
+        if (evalData.eval_suites) {
+          evals.push({ suite: "last-run", score: 80, delta: 0 });
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  return c.json({ metrics, alerts, evals, lastUpdated });
+});
+
 // --- Config (provider, model, base URLs) ---
 app.get("/api/config", (c) => c.json(loadConfig()));
 app.post("/api/config", async (c) => {

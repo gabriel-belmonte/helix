@@ -544,9 +544,18 @@ function runTui() {
 
   // 2) Dev checkout: spawn the TUI with Bun.
   const here = import.meta.dirname ?? ".";
-  const devEntry = join(here, "../tui/src/tui.tsx");
+  const candidates = [
+    join(here, "../tui/src/tui.tsx"),               // monorepo packages/tui/
+    join(process.cwd(), "packages/tui/src/tui.tsx"), // from monorepo root
+    join(process.cwd(), "../../packages/tui/src/tui.tsx"), // nested
+  ];
+  let devEntry: string | null = null;
+  for (const c of candidates) {
+    if (existsSync(c)) { devEntry = c; break; }
+  }
+
   const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
-  if (existsSync(devEntry) && bun) {
+  if (devEntry && bun) {
     console.log(chalk.green("✓") + " launching Helix TUI (Ctrl+C to quit, Ctrl+M to pick model)\n");
     const child = spawn(bun, [devEntry], { stdio: "inherit", env: { ...process.env } });
     child.on("exit", (code) => process.exit(code ?? 0));
@@ -554,11 +563,13 @@ function runTui() {
   }
 
   // 3) Fallback.
-  console.log(chalk.yellow("!") + " Helix TUI needs the tui package or a source checkout.");
+  console.log(chalk.yellow("!") + " Helix TUI needs the companion binary or a source checkout.");
   console.log(chalk.gray("  From a source checkout:"));
-  console.log(`    ${chalk.cyan("bun run packages/tui/src/tui.tsx")}`);
-  console.log(chalk.gray("  Or install via npm:"));
-  console.log(`    ${chalk.cyan("npm i -g helix-tui && helix-tui")}`);
+  console.log(`    ${chalk.cyan("cd helix-monorepo && bun run packages/tui/src/tui.tsx")}`);
+  console.log(chalk.gray("  Or install via install.sh (includes TUI):"));
+  console.log(`    ${chalk.cyan("curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh")}`);
+  console.log(chalk.gray("  Or compile the TUI binary yourself:"));
+  console.log(`    ${chalk.cyan("bun build packages/tui/src/tui.tsx --compile --outfile helix-tui")}`);
 }
 
 /**

@@ -16,15 +16,16 @@ if it's missing** — so `helix --web` works out of the box with zero setup.
 If it's down and Docker is available, Helix runs:
 
 ```bash
-sudo docker run -d --name helix-searxng --restart unless-stopped \
+docker run -d --name helix-searxng --restart unless-stopped \
   -p 127.0.0.1:8888:8080 searxng/searxng:latest
 ```
 
 then waits (up to ~30s) for the `/search?q=…&format=json` endpoint to respond.
 
-> **Note:** Helix uses `sudo docker` because the default VPS user isn't in the
-> `docker` group. Adjust for your environment. If Docker is unavailable, search
-> is simply disabled (with a warning) while extract keeps working.
+> **Note:** Helix auto-detects Docker availability — it tries `docker` first
+> (macOS Docker Desktop, Windows, Linux root), then falls back to `sudo docker`
+> (Linux where the user isn't in the `docker` group). If Docker is unavailable,
+> search is simply disabled (with a warning) while extract keeps working.
 
 ## Extract: Firecrawl-compatible server (no Docker)
 

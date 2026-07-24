@@ -164,7 +164,7 @@ Configure via `helix config set` or environment variables:
 | **OpenRouter** (free tier) | `helix config set provider openrouter` | `OPENROUTER_API_KEY` |
 | **HuggingFace** (free inference) | `helix config set provider hf` | `HF_TOKEN` |
 
-Free Zen models: `deepseek-v4-flash-free`, `mimo-v2.5-free`, `nemotron-3-ultra-free`, `north-mini-code-free`, `ling-3.1-flash-free`, `laguna-s-2.2-free`
+Free Zen models: `deepseek-v4-flash-free`, `mimo-v2.5-free`, `nemotron-3-ultra-free`, `north-mini-code-free`, `laguna-s-2.1-free`
 
 ## Sub-agents (Pi-style)
 

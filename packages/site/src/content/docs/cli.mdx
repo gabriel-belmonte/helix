@@ -28,11 +28,16 @@ helix -v -p "list files in src/"              # verbose: show tool calls
 | `-v, --verbose` | print tool calls as they happen |
 | `-c, --cwd <dir>` | run with a different working directory |
 | `--scripted` | use the built-in deterministic LLM (no network, no keys) — great for testing |
+| `--sandbox` | run inside a Docker sandbox container (implies `-p`) |
+| `--json` | structured JSON output for scripting / CI |
+| `--web` | enable both `web_search` (SearXNG) + `web_extract` (Firecrawl-compatible) |
+| `--web-search` | enable only web search |
+| `--web-extract` | enable only web extraction |
 
 ## Config
 
 ```bash
-helix config set provider zen        # one of: zen | hf | openrouter | openai
+helix config set provider zen        # one of: zen | hf | openrouter | openai | anthropic
 helix config set model big-pickle
 helix config get                     # show full config
 helix config get model               # show one key

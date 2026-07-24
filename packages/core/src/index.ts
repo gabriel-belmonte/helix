@@ -15,5 +15,6 @@ export * from "./zen.js";
 export * from "./router.js";
 export * from "./caveman.js";
 export * from "./rtk.js";
+export * from "./config.js";
 export * from "./delegate.js";
 export type { SubTaskInput, SubTaskResult } from "./delegate.js";

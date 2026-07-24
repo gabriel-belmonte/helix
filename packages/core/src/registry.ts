@@ -62,22 +62,27 @@ export class ToolRegistry {
 // --------------------------------------------------------------------------
 
 export type HelixConfig = {
-  /** Web feature group (granular). Each piece is independently toggleable. */
-  web?: {
-    search?: boolean; // web_search tool (SearXNG)
-    extract?: boolean; // web_extract tool (Firecrawl-compatible local server)
-  };
+  /** Provider name (zen, hf, openrouter, openai, anthropic). */
+  provider?: "zen" | "hf" | "openrouter" | "openai" | "anthropic";
+  /** Model slug (e.g. "big-pickle", "gpt-4o-mini"). */
+  model?: string;
+  /** Flat format: user-facing fields from ~/.helix/config.json. */
+  zenBaseUrl?: string;
+  hfBaseUrl?: string;
+  /** Ordered list of "{provider}:{model}" fallbacks for ProviderRouter. */
+  fallback?: string[];
   /** Extra features toggled by plugins / future surfaces. */
   features?: Record<string, boolean>;
-  /** Endpoints for self-hosted infra (overridable per deploy). */
+  /** Web feature group (granular). Each piece is independently toggleable. */
+  web?: {
+    search?: boolean;
+    extract?: boolean;
+  };
+  /** Self-hosted infra endpoints (overridable per deploy). */
   infra?: {
     searxngUrl?: string;
     firecrawlUrl?: string;
   };
-  /** Provider configuration (used by CLI surfaces). */
-  provider?: string;
-  model?: string;
-  fallback?: string[];
 };
 
 export const defaultConfig: HelixConfig = {

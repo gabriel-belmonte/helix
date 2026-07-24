@@ -15,7 +15,7 @@ import { serveStatic } from "hono/bun";
 import { homedir } from "node:os";
 import { join, resolve, relative, dirname } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { loadConfig, saveConfig, type HelixConfig } from "../../cli/src/config.js";
+import { loadConfig, saveConfig, type HelixConfig } from "helix-core";
 import { listCredentials, setKey, removeKey, PROVIDER_ENV, ZEN_MODELS, fetchZenModels, isFreeModel } from "helix-core";
 import { discoverSkills, buildAgent, loadProvider } from "helix-core";
 import { scriptedLLM } from "helix-agent";

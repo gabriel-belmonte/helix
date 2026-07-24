@@ -183,3 +183,14 @@ tie. The judge confirms both outputs are correct; latency breaks the tie.
 Eval is **regression detection, not a leaderboard** — keep suites small (5–10
 high-signal cases) and re-run them in CI so a bad model/prompt change fails the
 build before users see it.
+
+## Tips
+
+- **Cost is only tracked if you set `costPer1kPrompt` / `costPer1kCompletion`**
+  on each case. Leave them at `0` for free models (the default).
+- **Latency includes the network round-trip** to the provider — run multiple
+  times and average for stable numbers.
+- **Keep suites small and high-signal.** 5–10 hand-picked cases beat 1000 noisy
+  ones. This is regression detection, not a leaderboard.
+- **`--scripted`** runs the built-in deterministic LLM (no network, no keys) —
+  great for testing your suite format before spending tokens.

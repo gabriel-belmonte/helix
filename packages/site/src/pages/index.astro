@@ -71,14 +71,14 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
       <div class="terminal" aria-label="terminal demo">
         <div class="terminal-bar">
           <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
-          <span class="tname">~ — helix -p "hola quien eres?"</span>
+          <span class="tname">~ — helix -p "what can you do?"</span>
         </div>
         <div class="terminal-body">
-<span class="p">$</span> helix -p "hola quien eres?"
+<span class="p">$</span> helix -p "what can you do?"
 
-<span class="ok">Helix:</span> ¡Hola! Soy Helix, un agente de codificación
-minimalista. Estoy aquí para ayudarte con tareas
-de software.
+<span class="ok">Helix:</span> I'm Helix, a minimal coding agent.
+I can read/write files, run commands, search the
+web, and help with software tasks.
 
 <span class="c">// that reply came from the LLM — but helix's agent loop</span>
 <span class="c">// handles tool calls, multi-turn memory, and retry</span>
@@ -289,14 +289,14 @@ de software.
           <h3>Native binary</h3>
           <p>
             <code>curl | sh</code> installs a single binary. No npm, no node,
-            no dependencies. Works on macOS, Linux x64/arm64.
+            no dependencies. Works on macOS, Linux x64/arm64, Windows x64.
           </p>
         </div>
         <div class="card">
           <span class="tag">core</span>
           <h3>One source of truth</h3>
           <p>
-            <code>helix-core</code> is shared by CLI, future TUI, web UI and
+            <code>helix-core</code> is shared by CLI, TUI, web UI and
             Desktop. Behavior never diverges between surfaces.
           </p>
         </div>

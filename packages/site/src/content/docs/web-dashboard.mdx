@@ -54,8 +54,13 @@ bun run start    # serves UI + API on :8799
 
 Then open http://localhost:8799.
 
-> **Port note:** `:8787` is used by Hermes' local Firecrawl on this machine, so
-> Helix web defaults to `:8799`. Override with `PORT=... bun run start`.
+Or run with Docker Compose (persists your config via a volume mount):
+
+```bash
+docker compose up     # serves http://localhost:8799, mounts ~/.helix
+```
+
+> **Port note:** The Dashboard defaults to `:8799`. Override with `PORT=... bun run start`.
 
 ## Configure your API key from the web
 

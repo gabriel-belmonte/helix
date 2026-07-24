@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').cpSync('extract-server','dist/extract-server',{recursive:true})\"",
-    "test": "tsx --test test/*.test.ts",
+    "test": "bun test test/*.test.ts",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -37,7 +37,6 @@
   },
   "devDependencies": {
     "typescript": "^5.4.0",
-    "tsx": "^4.7.0",
     "@types/node": "^20.11.0"
   },
   "private": true

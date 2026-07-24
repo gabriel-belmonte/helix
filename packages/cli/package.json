@@ -14,7 +14,7 @@
     "build": "bun build packages/cli/cli.ts --compile --outfile helix 2>&1 | tail -1",
     "typecheck": "tsc --noEmit 2>&1 | head -10 || true",
     "start": "tsx cli.ts",
-    "test": "tsx --test",
+    "test": "bun test",
     "demo": "tsx cli.ts -p \"List the files in the current directory\" --scripted",
     "clean": "rm -rf dist helix"
   },

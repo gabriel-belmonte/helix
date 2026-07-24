@@ -12,6 +12,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@types/node": "^20.11.0",
     "helix-agent": "*",
     "typescript": "^5.5.0"
   },

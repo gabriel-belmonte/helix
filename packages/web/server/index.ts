@@ -17,7 +17,7 @@ import { join, resolve, relative, dirname } from "node:path";
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { loadConfig, saveConfig, type HelixConfig } from "helix-core";
 import { listCredentials, setKey, removeKey, PROVIDER_ENV, ZEN_MODELS, fetchZenModels, isFreeModel } from "helix-core";
-import { discoverSkills, buildAgent, loadProvider } from "helix-core";
+import { discoverSkills, defaultSkillDirs, buildAgent, loadProvider } from "helix-core";
 import { scriptedLLM } from "helix-agent";
 import { JsonlMemoryStore, readSoul } from "helix-memory";
 
@@ -90,14 +90,7 @@ app.get("/api/zen-models", async (c) => {
 
 // --- Skills (discovered from skill dirs) ---
 app.get("/api/skills", (c) => {
-  const dirs = [
-    join(HELIX_DIR, "skills"),
-    join(process.cwd(), "skills"),
-    join(homedir(), ".claude", "skills"),
-    join(process.cwd(), ".claude", "skills"),
-    join(homedir(), ".agents", "skills"),
-    join(process.cwd(), ".agents", "skills"),
-  ];
+  const dirs = defaultSkillDirs();
   const skills = discoverSkills(dirs).map((s) => ({
     name: s.name,
     description: s.description,

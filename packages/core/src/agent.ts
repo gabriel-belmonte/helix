@@ -16,7 +16,7 @@ import { makeMemoryTools, readSoul } from "helix-memory";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-function defaultSkillDirs(): string[] {
+export function defaultSkillDirs(): string[] {
   const cwd = process.cwd();
   return [
     join(homedir(), ".helix", "skills"),

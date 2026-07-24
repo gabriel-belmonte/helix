@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
 
-const PROVIDERS = ["zen", "hf", "openrouter", "openai"];
+const PROVIDERS = ["zen", "hf", "openrouter", "openai", "anthropic"];
 
 type ZenModel = { id: string; free: boolean; label: string; current: boolean };
 

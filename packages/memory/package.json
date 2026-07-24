@@ -10,10 +10,9 @@
     "test": "bun test test/*.test.ts",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "helix-agent": "*"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "helix-agent": "*",
     "typescript": "^5.5.0"
   },
   "private": true

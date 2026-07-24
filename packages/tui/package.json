@@ -2,6 +2,8 @@
   "name": "helix-tui",
   "version": "0.1.0",
   "description": "Helix TUI — a thin Ink-based terminal UI over helix-core.",
+  "private": true,
+  "license": "MIT",
   "type": "module",
   "bin": {
     "helix-tui": "./dist/tui.js"

@@ -18,3 +18,5 @@ packages/site/dist/
 .env
 .env.*
 !.env.example
+
+.omo

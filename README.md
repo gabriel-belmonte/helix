@@ -127,7 +127,7 @@ docker run --rm -it -v "$PWD:/workspace" ghcr.io/gabriel-belmonte/helix/helix-sa
   helix eval --suite <f> --compare <slug>   A/B two models
   helix eval --suite <f> --judge <slug>     LLM judge grading
   helix submit-task <file>       run as isolated sub-agent
-  helix --sandbox -p "..."       run inside Docker sandbox
+  helix --sandbox -p "..."       run inside Docker sandbox (docker required)
   helix history clear            clear conversation history
   helix update                   update to latest release
 ```
@@ -164,7 +164,7 @@ Configure via `helix config set` or environment variables:
 | **OpenRouter** (free tier) | `helix config set provider openrouter` | `OPENROUTER_API_KEY` |
 | **HuggingFace** (free inference) | `helix config set provider hf` | `HF_TOKEN` |
 
-Free Zen models: `deepseek-v4-flash-free`, `mimo-v2.5-free`, `nemotron-3-ultra-free`, `north-mini-code-free`, `ling-3.0-flash-free`, `laguna-s-2.1-free`
+Free Zen models: `deepseek-v4-flash-free`, `mimo-v2.5-free`, `nemotron-3-ultra-free`, `north-mini-code-free`, `ling-3.1-flash-free`, `laguna-s-2.2-free`
 
 ## Sub-agents (Pi-style)
 

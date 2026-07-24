@@ -183,6 +183,12 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
   console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
   console.log(`  ${chalk.cyan("helix status")}              show provider, model and API-key status`);
+  console.log(`  ${chalk.cyan("helix doctor")}              diagnose infrastructure (keys, web, docker, skills)`);
+  console.log(`  ${chalk.cyan("helix init")}                setup wizard for first-time configuration`);
+  console.log(`  ${chalk.cyan("helix session save <n>")}    save conversation history`);
+  console.log(`  ${chalk.cyan("helix session load <n>")}    restore a saved conversation`);
+  console.log(`  ${chalk.cyan("helix session list")}         list saved sessions`);
+  console.log(`  ${chalk.cyan("helix --json -p ...")}       structured JSON output for scripting`);
   console.log(`  ${chalk.cyan("helix dashboard")}           launch the web Dashboard`);
   console.log(`  ${chalk.cyan("helix tui")}                 launch the terminal UI (Ink chat)`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);

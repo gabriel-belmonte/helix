@@ -127,22 +127,62 @@ helix status
 ```
 
 Prints the **active provider + model** and the **API-key status of every
-provider** (set / not set, source = env or stored file, plus a sha256
-fingerprint of the stored key). Example:
+provider**. See also [`helix doctor`](#doctor) for a full diagnostics check.
 
+## Doctor
+
+```bash
+helix doctor
 ```
-Helix status
-  provider  zen
-  model     big-pickle
 
-API keys
-  ● set      zen         env (env:OPENCODE_ZEN_API_KEY)
-  ○ not set  hf          —
-  ○ not set  openrouter  —
-  ○ not set  openai      —
+Runs a full diagnostics check:
 
-  ● set   ○ not set
-  env vars take precedence over stored keys.
+- **API keys** — which providers have keys configured (env or stored)
+- **SearXNG (web_search)** — checks if the search backend is online on :8888
+- **Extract (web_extract)** — checks if the extract server is online on :8787
+- **Docker** — whether Docker is available on the system
+- **Skills** — how many SKILL.md folders are discovered
+- **Config** — provider and model status
+
+Useful when something isn't working — tells you exactly what's misconfigured.
+
+## Init
+
+```bash
+helix init
+```
+
+Interactive setup wizard. If no provider is configured yet, it sets up
+`~/.helix/config.json` with sensible defaults (provider=zen, model=big-pickle)
+and prints next steps for setting your API key, trying the TUI, and launching
+the Dashboard.
+
+## Session
+
+```bash
+helix session list                      # show saved conversations
+helix session save my-analysis          # save current conversation
+helix session load my-analysis          # restore a saved conversation
+helix session export my-analysis        # print session as JSON
+```
+
+Conversations are stored in `~/.helix/sessions/` as JSON files. Useful for
+bookmarking progress, sharing context, or debugging what the model saw.
+
+## JSON output
+
+```bash
+helix --json -p "analyze this code"
+```
+
+Returns structured JSON instead of plain text, useful for scripting / CI:
+
+```json
+{
+  "result": "…analysis…",
+  "latency": 3200,
+  "turns": 1
+}
 ```
 
 ## Evaluate (eval)

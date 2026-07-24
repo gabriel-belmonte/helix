@@ -100,22 +100,61 @@ helix status
 ```
 
 Muestra el **provider + modelo activos** y el **estado de la API key de cada
-provider** (configurada / no, origen = env o archivo, más un fingerprint sha256
-de la clave guardada). Ejemplo:
+provider**. Ve también [`helix doctor`](#doctor) para un diagnóstico completo.
 
+## Doctor
+
+```bash
+helix doctor
 ```
-Helix status
-  provider  zen
-  model     big-pickle
 
-API keys
-  ● set      zen         env (env:OPENCODE_ZEN_API_KEY)
-  ○ not set  hf          —
-  ○ not set  openrouter  —
-  ○ not set  openai      —
+Ejecuta un diagnóstico completo:
 
-  ● set   ○ not set
-  las env vars tienen prioridad sobre las claves guardadas.
+- **API keys** — qué proveedores tienen clave configurada (env o almacenada)
+- **SearXNG (web_search)** — comprueba si el backend de búsqueda está online en :8888
+- **Extract (web_extract)** — comprueba si el servidor de extracción está online en :8787
+- **Docker** — si Docker está disponible en el sistema
+- **Skills** — cuántos directorios SKILL.md se encontraron
+- **Config** — estado del proveedor y modelo
+
+Útil cuando algo no funciona — te dice exactamente qué está mal configurado.
+
+## Init
+
+```bash
+helix init
+```
+
+Asistente de configuración interactivo. Si no hay proveedor configurado,
+establece valores por defecto (provider=zen, model=big-pickle) y muestra
+los siguientes pasos.
+
+## Sesión
+
+```bash
+helix session list                      # muestra conversaciones guardadas
+helix session save mi-analisis          # guarda la conversación actual
+helix session load mi-analisis          # restaura una conversación guardada
+helix session export mi-analisis        # imprime la sesión como JSON
+```
+
+Las conversaciones se guardan en `~/.helix/sessions/` como JSON. Útil para
+marcar progreso, compartir contexto o depurar lo que vio el modelo.
+
+## Salida JSON
+
+```bash
+helix --json -p "analiza este código"
+```
+
+Devuelve JSON estructurado en vez de texto plano, útil para scripting / CI:
+
+```json
+{
+  "result": "…análisis…",
+  "latency": 3200,
+  "turns": 1
+}
 ```
 
 ## Evaluar (eval)

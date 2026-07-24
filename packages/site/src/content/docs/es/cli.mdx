@@ -28,6 +28,11 @@ helix -v -p "lista los archivos en src/"        # verbose: muestra las llamadas 
 | `-v, --verbose` | imprime las llamadas a tools en vivo |
 | `-c, --cwd <dir>` | ejecuta en otro directorio de trabajo |
 | `--scripted` | usa el LLM determinista integrado (sin red, sin claves) — ideal para probar |
+| `--sandbox` | ejecuta dentro de un contenedor Docker sandbox (implica `-p`) |
+| `--json` | salida JSON estructurada para scripting / CI |
+| `--web` | activa tanto `web_search` (SearXNG) como `web_extract` (compatible Firecrawl) |
+| `--web-search` | activa solo búsqueda web |
+| `--web-extract` | activa solo extracción web |
 
 ## Config
 

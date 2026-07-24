@@ -56,15 +56,13 @@ bun run start    # sirve UI + API en :8799
 
 Luego abre http://localhost:8799.
 
-Con Docker (un comando, persiste tu config en un volumen):
+Con Docker (un solo comando, persiste tu config en un volumen):
 
 ```bash
 docker compose up     # sirve http://localhost:8799, monta ~/.helix
 ```
 
-> **Nota de puerto:** el `:8787` lo usa el Firecrawl local de Hermes en esta
-> máquina, así que el dashboard de Helix usa `:8799` por defecto. Override con
-> `PORT=... bun run start`.
+> **Nota de puerto:** El dashboard usa `:8799` por defecto. Override con `PORT=... bun run start`.
 
 ## Configura tu API key desde la web
 

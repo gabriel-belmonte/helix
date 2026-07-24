@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "monitored_repos": ["gabriel-belmonte/helix"],
+  "npm_packages": ["helix-agent", "helix-core"],
+  "thresholds": {
+    "ci_failures_7d": { "warning": 1, "critical": 3 },
+    "test_failures": { "warning": 1, "critical": 3 },
+    "stars_stagnation_days": { "warning": 14, "critical": 30 },
+    "npm_downloads_weekly_drop_pct": { "warning": 15, "critical": 30 },
+    "build_time_seconds": { "warning": 180, "critical": 300 },
+    "eval_regression_pct": { "warning": 3, "critical": 7 }
+  },
+  "alert_channels": {
+    "kanban": true,
+    "local_log": true
+  },
+  "collectors": {
+    "github": { "enabled": true, "interval": "daily" },
+    "npm": { "enabled": true, "interval": "daily" },
+    "eval": { "enabled": true, "interval": "weekly" },
+    "competitors": { "enabled": true, "interval": "weekly" }
+  },
+  "data_dir": "~/.helix/monitor/"
+}

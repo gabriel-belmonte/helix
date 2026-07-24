@@ -12,7 +12,7 @@ and every surface is a thin adapter.
 
 ```text
 packages/
-  core/        ← ÚNICA FUENTE (helix-core)
+  core/        ← single source of truth (helix-core)
     src/registry.ts     ToolRegistry + PluginSystem + config schema
     src/builtins.ts     read_file, write_file, list_dir, run_bash, search_files
     src/web_search.ts   createWebSearchTool()  (opt-in, SearXNG)
@@ -23,7 +23,7 @@ packages/
   agent/       ← the raw engine (helix-agent)
   eval/        ← quality/cost regression
   site/        ← this site + docs
-  (tui/ web/ desktop/ ← future surfaces, all consume core)
+  (tui/ web/ desktop/ — thin surfaces, all consume core)
 ```
 
 ## Core responsibilities
@@ -48,9 +48,9 @@ packages/
 
 ## Why this shape
 
-Because you said it best: *"una sola fuente para CLI, TUI, web, Dashboard y
-Desktop"*. Splitting the runtime into `helix-core` means a bug fixed (or a
-module added) in one place benefits every surface at once.
+The single-source-of-truth design means a bug fixed (or a module added)
+in `helix-core` benefits every surface at once — CLI, TUI, web, Dashboard,
+and Desktop all share the same runtime.
 
 ## Surfaces
 
@@ -60,7 +60,7 @@ All surfaces import from `helix-core` and call the same
 - **CLI** (`helix-agent-cli`) — terminal agent, native binary.
 - **TUI** (`helix-tui`) — Ink terminal UI: chat history, streaming output,
   live tool-call indicator. Same logic, different render.
-- **web / Dashboard / Desktop** (future) — same base.
+- **web / Dashboard / Desktop** — same base.
 
 Even the **provider loader** (`loadProvider`) lives in `helix-core`, so
 OpenAI/Anthropic/Zen/… resolution is identical across CLI and TUI.

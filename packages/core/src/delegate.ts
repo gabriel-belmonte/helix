@@ -14,7 +14,7 @@
 //   chain    → sub-agents sequentially, each gets the prior result as context
 
 import { spawnSync, spawn } from "node:child_process";
-import { writeFileSync, mkdtempSync, readFileSync, readdirSync, rmSync, existsSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, tmpdir } from "node:os";
 
@@ -119,7 +119,6 @@ function runSubtask(input: SubTaskInput): SubTaskResult {
   writeFileSync(taskFile, JSON.stringify(input, null, 2));
 
   // Build args
-  // Build args using helper that also supports parallel/chain modes
   const args = buildArgs(bin, taskFile, resultFile);
 
   // Spawn

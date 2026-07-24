@@ -95,17 +95,17 @@ docker run --rm -it -v "$PWD:/workspace" ghcr.io/gabriel-belmonte/helix/helix-sa
 
 ## Packages
 
-| Package | What it is | Docs | Status |
-|---------|-----------|------|--------|
-| [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | [README](packages/agent/README.md) | 📦 **npm** |
-| [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | [README](packages/core/README.md) | 🔒 internal |
-| [`helix-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | [README](packages/cli/README.md) | 🏗️ Bun binary |
-| [`helix-tui`](packages/tui) | Ink terminal UI | [README](packages/tui/README.md) | 🏗️ bundled in CLI |
-| [`helix-web`](packages/web) | Dashboard server (Hono) | [README](packages/web/README.md) | 🏗️ bundled in CLI |
-| [`helix-mcp`](packages/mcp) | MCP client plugin | [README](packages/mcp/README.md) | 🔒 internal |
-| [`helix-eval`](packages/eval) | A/B eval + LLM judge | [README](packages/eval/README.md) | 🔒 internal |
-| [`helix-memory`](packages/memory) | Modular memory (JSONL) | [README](packages/memory/README.md) | 🔒 internal |
-| [`helix-site`](packages/site) | Docs + landing (Astro) | — | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
+| Package | What it is | Status |
+|---------|-----------|--------|
+| [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | 📦 **npm** |
+| [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | 🔒 internal |
+| [`helix-agent-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | 🏗️ Bun binary |
+| [`helix-tui`](packages/tui) | Ink terminal UI | 🏗️ bundled in CLI |
+| [`helix-web`](packages/web) | Dashboard server (Hono) | 🏗️ bundled in CLI |
+| [`helix-mcp`](packages/mcp) | MCP client plugin | 🔒 internal |
+| [`helix-agent-eval`](packages/eval) | A/B eval + LLM judge | 🔒 internal |
+| [`helix-memory`](packages/memory) | Modular memory (JSONL) | 🔒 internal |
+| [`helix-site`](packages/site) | Docs + landing (Astro) | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
 
 ## CLI commands
 

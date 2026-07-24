@@ -63,6 +63,11 @@ interface CliOpts {
   evalJudge?: string;
   version?: boolean;
   status?: boolean;
+  doctor?: boolean;
+  jsonMode?: boolean;
+  sessionAction?: "save" | "load" | "list" | "export";
+  sessionName?: string;
+  init?: boolean;
   dashboard?: boolean;
   tui?: boolean;
   submitTask?: string;   // path to task JSON file

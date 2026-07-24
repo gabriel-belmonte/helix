@@ -21,7 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Use Bun (not npm): the monorepo root uses the `workspace:*` protocol,
       # which npm does not understand (EUNSUPPORTEDPROTOCOL). Bun resolves the
       # local helix-* packages and the Rollup native binaries correctly.

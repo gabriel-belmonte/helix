@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/gabriel-belmonte/helix)](https://github.com/gabriel-belmonte/helix/releases)
+[![npm](https://img.shields.io/npm/v/helix-agent?label=npm)](https://www.npmjs.com/package/helix-agent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/written%20in-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-ready-00b894.svg)](https://modelcontextprotocol.io/)
 [![skills.sh](https://img.shields.io/badge/skills.sh-compatible-ff4785.svg)](https://skills.sh/)
 [![Bun](https://img.shields.io/badge/toolchain-Bun-000000.svg)](https://bun.sh/)
 ![Platform](https://img.shields.io/badge/platform-Linux%20|%20macOS%20|%20Windows-6f42c1)
-[![npm](https://img.shields.io/npm/v/helix-agent)](https://www.npmjs.com/package/helix-agent)
 [![Sponsor](https://img.shields.io/badge/sponsor-Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=000)](https://buymeacoffee.com/gabrielbelmonte)
 
 **A coding agent you can actually read.** Minimal, transparent TypeScript agent framework — CLI, TUI, and web Dashboard, all in one binary.

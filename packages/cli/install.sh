@@ -52,14 +52,8 @@ download_asset() {
   fi
 }
 
-# 1. Install the CLI binary.
+# Install the unified Helix binary (CLI + TUI + Dashboard all in one).
 download_asset "helix-${OS}-${ARCH}" "helix"
-
-# 2. Install the TUI companion binary.
-download_asset "helix-tui-${OS}-${ARCH}" "helix-tui"
-
-# 3. Install the Dashboard companion binary.
-download_asset "helix-dashboard-${OS}-${ARCH}" "helix-dashboard"
 
 # Save version marker for `helix update`
 VERSION_LABEL="${VERSION:-latest}"
@@ -68,7 +62,7 @@ if [ "$VERSION_LABEL" = "latest" ]; then
 fi
 echo "$VERSION_LABEL" > "$INSTALL_DIR/.helix-version" 2>/dev/null || true
 
-echo "✓ installed: $(command -v helix) + $(command -v helix-tui) + $(command -v helix-dashboard) ($VERSION_LABEL)"
+echo "✓ installed: $(command -v helix) ($VERSION_LABEL)"
 echo
 echo "Next steps:"
 echo "  export OPENCODE_ZEN_API_KEY=***   # or HF_TOKEN / OPENROUTER_API_KEY"

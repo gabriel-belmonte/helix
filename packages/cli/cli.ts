@@ -13,6 +13,22 @@ import { handleEval, type EvalCliOpts } from "./src/eval.js";
 import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
 import type { ChatMessage, LLMProvider } from "helix-agent";
 import { Agent } from "helix-agent";
+/** Lazy import for TUI (bundled by bun --compile). */
+let _startTui: (() => void) | null = null;
+async function ensureTui() {
+  if (!_startTui) {
+    try { _startTui = (await import("../tui/src/tui.tsx")).startTui; } catch { _startTui = null; }
+  }
+  return _startTui;
+}
+/** Lazy import for Dashboard (bundled by bun --compile). */
+let _startDashboard: ((port?: number) => void) | null = null;
+async function ensureDashboard() {
+  if (!_startDashboard) {
+    try { _startDashboard = (await import("../web/server/index.ts")).startDashboard; } catch { _startDashboard = null; }
+  }
+  return _startDashboard;
+}
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { join, dirname } from "node:path";
@@ -433,33 +449,17 @@ async function statusWebInfra() {
 }
 
 // Launch the Helix Dashboard (web control panel) on :8799.
-// Priority: companion binary > dev checkout > Docker > instructions.
+// Uses imported startDashboard() (bundled by bun --compile).
 async function runDashboard() {
   const PORT = process.env.PORT ?? "8799";
-  const here = import.meta.dirname ?? ".";
-
-  // 1) Companion binary (helix-dashboard) alongside the CLI.
-  const cliPath = process.execPath;
-  const companion = join(dirname(cliPath), "helix-dashboard");
-  if (existsSync(companion)) {
-    const sp = ora({ text: "Starting Helix Dashboard…", color: "cyan" }).start();
-    const child = spawn(companion, [], {
-      stdio: "ignore",
-      env: { ...process.env, PORT },
-    });
-    await new Promise((r) => setTimeout(r, 2000));
-    const ok = await fetch(`http://localhost:${PORT}/api/health`)
-      .then((r) => r.ok).catch(() => false);
-    if (ok) {
-      sp.succeed(`Helix Dashboard running on http://localhost:${PORT}`);
-    } else {
-      sp.warn("Dashboard may still be starting…");
-    }
-    child.unref();
+  const startDashboard = await ensureDashboard();
+  if (startDashboard) {
+    startDashboard();
     return;
   }
 
-  // 2) Dev checkout: spawn the workspace server with Bun.
+  // Fallback: dev checkout
+  const here = import.meta.dirname ?? ".";
   const serverCandidate = join(here, "../web/server/index.ts");
   const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
   if (existsSync(serverCandidate) && bun) {
@@ -549,46 +549,19 @@ async function runDashboard() {
 }
 
 // Launch the Helix TUI (Ink-based terminal UI).
-// In a source checkout it spawns the TUI with Bun; in a standalone binary it
-// prints instructions.
+// Imports and calls startTui() directly (no companion binary needed).
 function runTui() {
-  // 1) Companion binary installed alongside helix (via install.sh).
-  const cliPath = process.execPath; // /usr/local/bin/helix
-  const companion = join(dirname(cliPath), "helix-tui");
-  if (existsSync(companion)) {
-    const child = spawn(companion, [], { stdio: "inherit", env: { ...process.env } });
-    child.on("exit", (code) => process.exit(code ?? 0));
-    return;
-  }
-
-  // 2) Dev checkout: spawn the TUI with Bun.
-  const here = import.meta.dirname ?? ".";
-  const candidates = [
-    join(here, "../tui/src/tui.tsx"),               // monorepo packages/tui/
-    join(process.cwd(), "packages/tui/src/tui.tsx"), // from monorepo root
-    join(process.cwd(), "../../packages/tui/src/tui.tsx"), // nested
-  ];
-  let devEntry: string | null = null;
-  for (const c of candidates) {
-    if (existsSync(c)) { devEntry = c; break; }
-  }
-
-  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
-  if (devEntry && bun) {
-    console.log(chalk.green("✓") + " launching Helix TUI (Ctrl+C to quit, Ctrl+M to pick model)\n");
-    const child = spawn(bun, [devEntry], { stdio: "inherit", env: { ...process.env } });
-    child.on("exit", (code) => process.exit(code ?? 0));
-    return;
-  }
-
-  // 3) Fallback.
-  console.log(chalk.yellow("!") + " Helix TUI needs the companion binary or a source checkout.");
-  console.log(chalk.gray("  From a source checkout:"));
-  console.log(`    ${chalk.cyan("cd helix-monorepo && bun run packages/tui/src/tui.tsx")}`);
-  console.log(chalk.gray("  Or install via install.sh (includes TUI):"));
-  console.log(`    ${chalk.cyan("curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh")}`);
-  console.log(chalk.gray("  Or compile the TUI binary yourself:"));
-  console.log(`    ${chalk.cyan("bun build packages/tui/src/tui.tsx --compile --outfile helix-tui")}`);
+  ensureTui().then((startTui) => {
+    if (startTui) { startTui(); return; }
+    // Fallback: try spawning from dev checkout
+    const tuiPath = join(import.meta.dirname ?? ".", "../tui/src/tui.tsx");
+    if (existsSync(tuiPath)) {
+      const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+      if (bun) { spawn(bun, [tuiPath], { stdio: "inherit", env: { ...process.env } }); return; }
+    }
+    console.log(chalk.yellow("!") + " Helix TUI not available in this build.");
+    console.log(`  ${chalk.cyan("cd helix-monorepo && bun run packages/tui/src/tui.tsx")}`);
+  });
 }
 
 /**

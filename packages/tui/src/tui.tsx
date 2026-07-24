@@ -238,4 +238,11 @@ if (process.argv.includes("--version") || process.argv.includes("-V")) {
   printVersionAndExit();
 }
 
-render(<Chat />);
+/** Start the TUI. Called by the CLI (helix tui) or directly. */
+export function startTui() {
+  render(<Chat />);
+}
+
+// Allow running directly: `bun run tui.tsx`
+const isDirect = import.meta.url === `file://${process.argv[1]}`;
+if (isDirect) startTui();

@@ -212,9 +212,15 @@ app.get("/", serveStatic({ root: "./dist", path: "index.html" }));
 
 export { app };
 
+/** Start the dashboard server. Called by the CLI or directly. */
+export function startDashboard(port?: number) {
+  const p = port ?? (Number(process.env.PORT) || 8799);
+  Bun.serve({ fetch: app.fetch, port: p });
+  console.log(`helix-web listening on http://localhost:${p} (API + dashboard)`);
+}
+
 const PORT = Number(process.env.PORT) || 8799;
-// Only start listening when run directly (not when imported by tests).
+// Only start listening when run directly (not when imported).
 if (import.meta.main) {
-  Bun.serve({ fetch: app.fetch, port: PORT });
-  console.log(`helix-web listening on http://localhost:${PORT} (API + dashboard)`);
+  startDashboard(PORT);
 }

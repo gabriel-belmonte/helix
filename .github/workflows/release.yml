@@ -18,6 +18,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor ${{ github.sha }} origin/main; then
+            echo "❌ Tag ${{ github.ref_name }} is NOT on main branch."
+            echo "   Tags for releases must point to commits on main."
+            echo "   Push from dev is not allowed."
+            exit 1
+          fi
+          echo "✅ Tag ${{ github.ref_name }} is on main — proceeding."
       # Use Bun (not npm): the monorepo root uses the `workspace:*` protocol,
       # which npm does not understand (EUNSUPPORTEDPROTOCOL). Bun resolves the
       # local helix-* packages and the Rollup native binaries correctly.

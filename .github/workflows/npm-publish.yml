@@ -15,6 +15,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Ensure tag is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor ${{ github.sha }} origin/main; then
+            echo "❌ Tag ${{ github.ref_name }} is NOT on main branch."
+            echo "   Tags for npm publish must point to commits on main."
+            exit 1
+          fi
+          echo "✅ Tag ${{ github.ref_name }} is on main — proceeding."
 
       # Node 24 for npm >= 11.5.1 (required for OIDC trusted publishing)
       - uses: actions/setup-node@v4

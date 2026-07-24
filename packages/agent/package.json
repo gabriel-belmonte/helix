@@ -15,7 +15,9 @@
       "import": "./dist/src/vercel.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "tsx --test test/*.test.ts",
@@ -23,7 +25,15 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["ai", "agents", "llm", "typescript", "orchestration", "langchain-alternative", "vercel"],
+  "keywords": [
+    "ai",
+    "agents",
+    "llm",
+    "typescript",
+    "orchestration",
+    "langchain-alternative",
+    "vercel"
+  ],
   "author": "gabriel-belmonte",
   "license": "MIT",
   "peerDependencies": {
@@ -41,5 +51,9 @@
     "ai": "^4.0.0",
     "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/anthropic": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

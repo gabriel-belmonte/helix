@@ -1,0 +1,17 @@
+FROM node:24-bookworm-slim
+
+# Install dependencies needed by tools (git for repo ops, ripgrep for search)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      bash ca-certificates git ripgrep curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Helix CLI globally
+ARG HELIX_VERSION=latest
+RUN npm install -g --ignore-scripts helix-agent-cli@${HELIX_VERSION} 2>/dev/null || true
+
+# Fallback: copy from local build if npm publish not available
+COPY . /helix-src
+
+WORKDIR /workspace
+ENTRYPOINT ["helix"]

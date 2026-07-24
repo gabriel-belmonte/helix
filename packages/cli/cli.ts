@@ -5,7 +5,7 @@ import chalk from "chalk";
 import ora from "ora";
 import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, ZEN_MODELS, fetchZenModels, isFreeModel, type HelixPlugin } from "helix-core";
 import { makeMcpPlugin } from "helix-mcp";
-import { makeCavemanPlugin, makeRtkPlugin } from "helix-core";
+import { makeCavemanPlugin, makeRtkPlugin, makeDelegatePlugin, type SubTaskInput, type SubTaskResult } from "helix-core";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -16,8 +16,8 @@ import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
-import { existsSync, readFileSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { spawn, spawnSync } from "node:child_process";
 
 interface CliOpts {
   prompt?: string;
@@ -48,6 +48,10 @@ interface CliOpts {
   status?: boolean;
   dashboard?: boolean;
   tui?: boolean;
+  submitTask?: string;   // path to task JSON file
+  submitResult?: string; // path to write result JSON
+  sandboxRun?: string;   // prompt to run inside Docker sandbox
+  sandboxTool?: boolean; // flag for sandboxed tool routing
 }
 
 function parseArgs(argv: string[]): CliOpts {
@@ -74,6 +78,14 @@ function parseArgs(argv: string[]): CliOpts {
       } else if (sub === "list") {
         opts.configGet = true;
       }
+    }
+    else if (a === "submit-task") {
+      opts.submitTask = argv[++i];     // path to task JSON
+      opts.submitResult = argv[++i];   // path to result JSON
+    }
+    else if (a === "--sandbox") {
+      // helix --sandbox -p "prompt" — run in Docker sandbox
+      opts.sandboxRun = argv[++i];     // next arg is the prompt
     }
     else if (a === "-h" || a === "--help") {
       printHelp();
@@ -549,6 +561,88 @@ function runTui() {
   console.log(`    ${chalk.cyan("npm i -g helix-tui && helix-tui")}`);
 }
 
+/**
+ * Run Helix inside a Docker sandbox container (sandboxed tool execution).
+ * Mounts the current directory, runs `helix -p "<prompt>"` inside.
+ */
+async function runSandbox(prompt: string) {
+  const docker = ["docker", "/usr/bin/docker", "/usr/local/bin/docker"].find((p) => existsSync(p));
+  if (!docker) {
+    console.error(chalk.red("✗") + " Docker not found. Install Docker for sandbox mode.");
+    console.log(chalk.gray("  See https://docs.docker.com/engine/install/"));
+    process.exit(1);
+  }
+
+  const sandboxImage = "ghcr.io/gabriel-belmonte/helix/helix-sandbox:latest";
+  const cwd = process.cwd();
+  const helixHome = join(homedir(), ".helix");
+
+  console.log(chalk.gray("🐳 Running in Docker sandbox..."));
+  console.log(chalk.gray(`  Prompt: "${prompt}"`));
+  console.log(chalk.gray(`  Mounts: ${cwd} → /workspace`));
+
+  const args = [
+    "run", "--rm", "-i",
+    "-v", `${cwd}:/workspace`,
+    "-v", `${helixHome}:/root/.helix`,
+    "-e", `OPENCODE_ZEN_API_KEY=${process.env.OPENCODE_ZEN_API_KEY || ""}`,
+    "-e", `HELIX_SUBAGENT=${process.env.HELIX_SUBAGENT || ""}`,
+    "-w", "/workspace",
+    sandboxImage,
+    "helix", "-p", prompt,
+  ];
+
+  const result = spawnSync(docker, args, { stdio: "inherit", timeout: 300_000 });
+  process.exit(result.status ?? 0);
+}
+
+/**
+ * Handle `submit-task` — run a single task as an isolated sub-agent.
+ * Used by the delegate_task tool (process isolation pattern, Pi-style).
+ * 
+ * Reads task JSON from file, runs agent with limited tools, writes result JSON.
+ */
+async function handleSubmitTask(taskPath: string, resultPath?: string) {
+  let task: SubTaskInput;
+  try {
+    task = JSON.parse(readFileSync(taskPath, "utf8"));
+  } catch (e: any) {
+    console.error(chalk.red("✗") + ` Failed to read task: ${e.message}`);
+    process.exit(1);
+  }
+
+  const llm = loadProvider({ scripted: true });
+  const plugins: HelixPlugin[] = [makeDelegatePlugin()];
+
+  // Sub-agents get read-only tools by default.
+  const agent = await buildAgent(llm, {
+    config: { web: { search: false, extract: false } },
+    plugins,
+  });
+
+  const startTime = Date.now();
+  const result = await agent.run(task.goal);
+  const elapsed = Date.now() - startTime;
+
+  const output: SubTaskResult = {
+    result,
+    agent: "sub-agent",
+    exitCode: 0,
+    usage: {
+      input: task.goal.length,
+      output: result.length,
+      turns: 1,
+    },
+  };
+
+  if (resultPath) {
+    writeFileSync(resultPath, JSON.stringify(output, null, 2));
+  } else {
+    // Write to stdout if no result path
+    process.stdout.write(JSON.stringify(output));
+  }
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -618,6 +712,18 @@ async function main() {
     return;
   }
 
+  // Sandbox subcommand — run inside Docker container
+  if (opts.sandboxRun) {
+    await runSandbox(opts.sandboxRun);
+    return;
+  }
+
+  // Submit-task subcommand — run as sub-agent (process isolation)
+  if (opts.submitTask) {
+    await handleSubmitTask(opts.submitTask, opts.submitResult);
+    return;
+  }
+
   // Config subcommand
   if (opts.config) {
     if (opts.configGet) {
@@ -679,6 +785,8 @@ async function main() {
   let llm: LLMProvider;
   try {
     llm = loadProvider({ scripted: opts.scripted });
+    // Delegate plugin: spawn sub-agents as isolated processes.
+    plugins.push(makeDelegatePlugin());
   } catch (e: any) {
     console.error(chalk.red("✗") + " " + e.message);
     process.exit(1);

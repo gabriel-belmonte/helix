@@ -11,13 +11,22 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "extract-server"],
+  "files": [
+    "dist",
+    "extract-server"
+  ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').cpSync('extract-server','dist/extract-server',{recursive:true})\"",
     "test": "tsx --test test/*.test.ts",
     "clean": "rm -rf dist"
   },
-  "keywords": ["ai", "agents", "helix", "plugin", "runtime"],
+  "keywords": [
+    "ai",
+    "agents",
+    "helix",
+    "plugin",
+    "runtime"
+  ],
   "author": "gabriel-belmonte",
   "license": "MIT",
   "dependencies": {
@@ -31,5 +40,9 @@
     "typescript": "^5.4.0",
     "tsx": "^4.7.0",
     "@types/node": "^20.11.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

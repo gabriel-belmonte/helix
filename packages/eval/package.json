@@ -5,18 +5,31 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "tsx --test",
     "clean": "rm -rf dist"
   },
-  "keywords": ["ai", "agents", "evaluation", "llm", "testing", "regression"],
+  "keywords": [
+    "ai",
+    "agents",
+    "evaluation",
+    "llm",
+    "testing",
+    "regression"
+  ],
   "author": "gabriel-belmonte",
   "license": "MIT",
   "devDependencies": {
     "typescript": "^5.4.0",
     "tsx": "^4.7.0",
     "@types/node": "^20.11.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

@@ -9,7 +9,7 @@
 //   - Plugins are plain functions that register tools / hooks / surfaces.
 //   - Features are toggled by the config object, never by env-side effects.
 
-import type { Tool } from "helix-agent";
+import type { Tool, LLMProvider } from "helix-agent";
 import { builtinTools } from "./builtins.js";
 import { createWebSearchTool } from "./web_search.js";
 import { createWebExtractTool } from "./web_extract.js";
@@ -102,6 +102,12 @@ export type HelixPluginContext = {
    *   ctx.overrideTool(myWebTool);  // replaces built-in `web` if present
    */
   overrideTool: (tool: HelixTool) => void;
+  /**
+   * The active LLM provider. Used by plugins that need to spawn sub-agents
+   * or make LLM calls (e.g. delegate_task, eval). May be undefined if the
+   * provider hasn't been created yet (plugin runs before provider).
+   */
+  llm?: LLMProvider;
 };
 
 export type HelixPlugin = {

@@ -33,7 +33,7 @@ import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { join, dirname } from "node:path";
 import { homedir } from "node:os";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 
 interface CliOpts {
@@ -85,6 +85,13 @@ function parseArgs(argv: string[]): CliOpts {
     else if (a === "-v" || a === "--verbose") opts.verbose = true;
     else if (a === "-V" || a === "--version") opts.version = true;
     else if (a === "status") opts.status = true;
+    else if (a === "doctor") opts.doctor = true;
+    else if (a === "session") {
+      opts.sessionAction = (argv[++i] as any) ?? "list";
+      opts.sessionName = argv[i + 1] && !argv[i + 1].startsWith("-") ? argv[++i] : undefined;
+    }
+    else if (a === "init") opts.init = true;
+    else if (a === "--json") opts.jsonMode = true;
     else if (a === "dashboard") opts.dashboard = true;
     else if (a === "tui") opts.tui = true;
     else if (a === "-c" || a === "--cwd") opts.cwd = argv[++i];
@@ -569,6 +576,153 @@ function runTui() {
   });
 }
 
+/** Diagnostics: check API keys, web infra, Docker, config, skills, MCP. */
+async function runDoctor() {
+  const cfg = loadConfig();
+  const checks: { name: string; ok: boolean; detail: string }[] = [];
+
+  // 1. API keys
+  const envKeys = Object.entries(PROVIDER_ENV).filter(([, env]) => process.env[env]);
+  const storedKeys = existsSync(AUTH_PATH) ? (JSON.parse(readFileSync(AUTH_PATH, "utf8"))) : {};
+  const allProviders = ["zen", "openai", "anthropic", "openrouter", "hf"];
+  for (const prov of allProviders) {
+    const fromEnv = envKeys.find(([p]) => p === prov);
+    const fromStore = storedKeys[prov];
+    const configured = !!fromEnv || !!fromStore;
+    const source = fromEnv ? "env" : fromStore ? "auth.json" : null;
+    checks.push({
+      name: `API key: ${prov}`,
+      ok: configured,
+      detail: configured ? `✅ ${source}` : "❌ not set",
+    });
+  }
+
+  // 2. Web infra
+  checks.push({ name: "SearXNG (web_search)", ok: false, detail: "checking…" });
+  checks.push({ name: "Extract (web_extract)", ok: false, detail: "checking…" });
+  try {
+    const sx = await fetch("http://127.0.0.1:8888/search?q=test&format=json", { signal: AbortSignal.timeout(2000) }).then(r => r.ok).catch(() => false);
+    checks[checks.length - 2] = { name: "SearXNG (web_search)", ok: sx, detail: sx ? "✅ online :8888" : "❌ offline :8888" };
+    const ex = await fetch("http://127.0.0.1:8787/health", { signal: AbortSignal.timeout(2000) }).then(r => r.ok).catch(() => false);
+    checks[checks.length - 1] = { name: "Extract (web_extract)", ok: ex, detail: ex ? "✅ online :8787" : "❌ offline :8787" };
+  } catch { /* ignore */ }
+
+  // 3. Docker
+  const hasDocker = ["docker", "/usr/bin/docker", "/usr/local/bin/docker"].some(p => existsSync(p));
+  checks.push({ name: "Docker", ok: hasDocker, detail: hasDocker ? "✅ available" : "❌ not found" });
+
+  // 4. Skills
+  const { discoverSkills: discoverSkillsFn } = await import("helix-core");
+  const skills = discoverSkillsFn([]);
+  checks.push({ name: "Skills", ok: true, detail: `${skills.length} found` });
+
+  // 5. Config
+  checks.push({ name: `Config (${cfg.provider ?? "unset"})`, ok: !!cfg.provider, detail: cfg.provider ? `✅ model: ${cfg.model ?? "(default)"}` : "❌ no provider set" });
+
+  // Print results
+  console.log(chalk.bold("\n🔍 Helix Doctor\n"));
+  for (const c of checks) {
+    const icon = c.ok ? chalk.green("●") : chalk.red("○");
+    console.log(`  ${icon} ${chalk.bold(c.name.padEnd(30))} ${c.detail}`);
+  }
+  console.log();
+  const allOk = checks.every(c => c.ok);
+  if (allOk) console.log(chalk.green("  ✓ All checks passed"));
+  else console.log(chalk.yellow(`  ⚠ ${checks.filter(c => !c.ok).length} issue(s) found`));
+}
+
+/** Session management: save/load/list/export conversation history. */
+async function runSession(action: string, name?: string) {
+  const histDir = join(homedir(), ".helix", "sessions");
+  mkdirSync(histDir, { recursive: true });
+
+  if (action === "list") {
+    const files = readdirSync(histDir).filter(f => f.endsWith(".json"));
+    if (files.length === 0) return console.log(chalk.gray("  No saved sessions."));
+    console.log(chalk.bold("\n📁 Saved sessions\n"));
+    for (const f of files) {
+      const label = f.replace(".json", "");
+      const stats = statSync(join(histDir, f));
+      const age = Math.round((Date.now() - stats.mtimeMs) / 1000 / 60);
+      console.log(`  ${chalk.cyan(label.padEnd(25))} ${chalk.gray(`${age}m ago`)}`);
+    }
+    return;
+  }
+
+  if (action === "save" && name) {
+    const history = loadHistory(1000);
+    writeFileSync(join(histDir, `${name}.json`), JSON.stringify(history, null, 2));
+    return console.log(chalk.green(`✓ session saved as "${name}" (${history.length} messages)`));
+  }
+
+  if (action === "load" && name) {
+    const path = join(histDir, `${name}.json`);
+    if (!existsSync(path)) return console.log(chalk.red(`✗ session "${name}" not found`));
+    const data = JSON.parse(readFileSync(path, "utf8"));
+    clearHistory();
+    for (const msg of data) appendHistory(msg.role, msg.content);
+    return console.log(chalk.green(`✓ session "${name}" restored (${data.length} messages)`));
+  }
+
+  if (action === "export" && name) {
+    const path = join(histDir, `${name}.json`);
+    if (!existsSync(path)) return console.log(chalk.red(`✗ session "${name}" not found`));
+    const data = JSON.parse(readFileSync(path, "utf8"));
+    process.stdout.write(JSON.stringify(data, null, 2));
+    return;
+  }
+
+  console.log(chalk.yellow("  Usage: helix session <save|load|list|export> [name]"));
+}
+
+/** Init: scaffold ~/.helix/ with config, guide for auth, skills, MCP. */
+async function runInit() {
+  const cfg = loadConfig();
+
+  // Check if already configured
+  if (cfg.provider) {
+    console.log(chalk.gray("  Helix is already configured."));
+    console.log(chalk.gray(`  provider: ${cfg.provider}, model: ${cfg.model ?? "(default)"}`));
+    console.log(chalk.gray("  To reconfigure: helix config set provider <name>"));
+    return;
+  }
+
+  console.log(chalk.bold("\n🚀 Helix Init — Setup Wizard\n"));
+
+  // Provider selection
+  console.log(chalk.cyan("Choose a provider:"));
+  const providers = [
+    { id: "zen", label: "OpenCode Zen (free models available)", default: true },
+    { id: "openai", label: "OpenAI" },
+    { id: "anthropic", label: "Anthropic" },
+    { id: "openrouter", label: "OpenRouter (free tier)", default: true },
+    { id: "hf", label: "HuggingFace (free inference)" },
+  ];
+  for (const p of providers) {
+    const def = p.default ? chalk.gray(" (recommended)") : "";
+    console.log(`  ${chalk.cyan(p.id.padEnd(14))} ${p.label}${def}`);
+  }
+
+  // Default setup
+  cfg.provider = "zen";
+  cfg.model = "big-pickle";
+  saveConfig(cfg as any);
+
+  console.log(chalk.green("\n✓ Config saved:") + ` provider=zen, model=big-pickle`);
+  console.log(chalk.gray("\nNext steps:"));
+  console.log(`  ${chalk.cyan("Set your API key:")}`);
+  console.log(`    export OPENCODE_ZEN_API_KEY="sk-..."`);
+  console.log(`  ${chalk.cyan("Or use the auth command:")}`);
+  console.log(`    helix auth login zen`);
+  console.log(`  ${chalk.cyan("Try it:")}`);
+  console.log(`    helix -p "list the files in this directory"`);
+  console.log(`  ${chalk.cyan("TUI:")}`);
+  console.log(`    helix tui`);
+  console.log(`  ${chalk.cyan("Dashboard:")}`);
+  console.log(`    helix dashboard`);
+  console.log();
+}
+
 /**
  * Run Helix inside a Docker sandbox container (sandboxed tool execution).
  * Mounts the current directory, runs `helix -p "<prompt>"` inside.
@@ -672,6 +826,24 @@ async function main() {
   // Dashboard: launch the web control panel.
   if (opts.dashboard) {
     await runDashboard();
+    return;
+  }
+
+  // Doctor: diagnose infrastructure.
+  if (opts.doctor) {
+    await runDoctor();
+    return;
+  }
+
+  // Session: save/load/list/export conversation history.
+  if (opts.sessionAction) {
+    await runSession(opts.sessionAction, opts.sessionName);
+    return;
+  }
+
+  // Init: scaffold ~/.helix/ config + auth wizard.
+  if (opts.init) {
+    await runInit();
     return;
   }
 
@@ -817,6 +989,22 @@ async function main() {
 
   if (opts.prompt) {
     if (opts.verbose) console.log(chalk.gray("→ prompt: " + opts.prompt));
+
+    if (opts.jsonMode) {
+      // JSON mode: structured output for scripting
+      const startTime = Date.now();
+      const reply = await agent.run(opts.prompt);
+      const elapsed = Date.now() - startTime;
+      appendHistory("user", opts.prompt);
+      appendHistory("assistant", reply);
+      process.stdout.write(JSON.stringify({
+        result: reply,
+        latency: elapsed,
+        turns: 1,
+      }, null, 2) + "\n");
+      return;
+    }
+
     // Streaming: print chunks as they arrive
     const onChunk = (text: string) => {
       process.stdout.write(chalk.white(text));

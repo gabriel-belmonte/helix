@@ -62,13 +62,22 @@ async function urlUp(url: string, timeoutMs = 1500, method: "GET" | "POST" = "GE
   }
 }
 
-async function dockerAvailable(): Promise<boolean> {
+async function dockerCmd(): Promise<string> {
   try {
-    await execFileP("sudo", ["docker", "info"], { timeout: 8000 });
-    return true;
+    await execFileP("docker", ["info"], { timeout: 5000 });
+    return "docker";
   } catch {
-    return false;
+    try {
+      await execFileP("sudo", ["docker", "info"], { timeout: 8000 });
+      return "sudo docker";
+    } catch {
+      return "";
+    }
   }
+}
+
+async function dockerAvailable(): Promise<boolean> {
+  return (await dockerCmd()).length > 0;
 }
 
 async function ensureDocker(
@@ -79,7 +88,10 @@ async function ensureDocker(
   health: { path: string; method?: "GET" | "POST" }
 ): Promise<void> {
   try {
-    const { stdout } = await execFileP("sudo", ["docker", "ps", "-q", "-f", `name=^${name}$`], {
+    const dCmd = await dockerCmd();
+    if (!dCmd) throw new Error("Docker not available");
+    const [bin, ...sudoParts] = dCmd.split(" ");
+    const { stdout } = await execFileP(bin, [...sudoParts, "ps", "-q", "-f", `name=^${name}$`], {
       timeout: 8000,
     });
     if (stdout.trim()) return; // already running
@@ -87,10 +99,13 @@ async function ensureDocker(
     /* fall through */
   }
 
+  const dCmd = await dockerCmd();
+  if (!dCmd) throw new Error("Docker not available");
+  const [bin, ...sudoParts] = dCmd.split(" ");
   await execFileP(
-    "sudo",
+    bin,
     [
-      "docker",
+      ...sudoParts,
       "run",
       "-d",
       "--name",

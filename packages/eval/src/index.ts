@@ -216,7 +216,7 @@ export function makeLlmJudge(
       const v = parseFloat(m[1]) / parseFloat(m[2]);
       return Math.max(0, Math.min(1, v));
     }
-    const n = resp.match(/0(?:\.\d+)?|1(?:\.0+)?/);
+    const n = resp.match(/\b(0(?:\.\d+)?|1(?:\.0+)?)\b/);
     if (n) {
       const v = parseFloat(n[0]);
       return Math.max(0, Math.min(1, v));

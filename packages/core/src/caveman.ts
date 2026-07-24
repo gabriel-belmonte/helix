@@ -71,7 +71,6 @@ export function cavemanCompress(text: string): string {
     [/\band\b/gi, "&"],
     [/\byou\b/gi, "u"],
     [/\byour\b/gi, "ur"],
-    [/\bwe\b/gi, "we"],
 
     // Number homophones (word → digit)
     [/\bto\b/gi, "2"],

@@ -405,7 +405,6 @@ async function printStatus(cfg: HelixConfig) {
     const fp = c.fingerprint ? chalk.gray(`  ${c.fingerprint}`) : "";
     console.log(`  ${mark.padEnd(10)} ${chalk.bold(c.provider.padEnd(11))} ${src}${fp}`);
   }
-  console.log(chalk.gray("  ● set   ○ not set"));
   console.log(chalk.gray("  env vars take precedence over stored keys."));
 
   // Web infra status.

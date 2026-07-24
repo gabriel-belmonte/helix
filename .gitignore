@@ -10,6 +10,14 @@ dist/
 packages/site/.astro/
 packages/site/dist/
 
+# worktrees (kanban task checkouts)
+.worktrees/
+
+# internal strategy docs (not for public repo)
+internal/
+HELIX-AUDIT-COMPARISON.md
+HELIX-ROADMAP.md
+
 # misc
 *.log
 .DS_Store

@@ -16,7 +16,7 @@
   "dependencies": {
     "helix-agent": "*",
     "helix-core": "*",
-    "ink": "^5.0.1",
+    "ink": "^7.1.0",
     "react": "^19.2.8"
   },
   "devDependencies": {

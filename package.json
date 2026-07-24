@@ -31,10 +31,17 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.18",
     "@ai-sdk/openai": "^4.0.18",
-    "ai": "^7.0.35"
+    "ai": "^7.0.35",
+    "react-devtools-core": "^7.0.1"
   },
   "funding": [
-    { "type": "Buy Me a Coffee", "url": "https://buymeacoffee.com/gabrielbelmonte" },
-    { "type": "Ko-fi", "url": "https://ko-fi.com/gabrielbelmonte" }
+    {
+      "type": "Buy Me a Coffee",
+      "url": "https://buymeacoffee.com/gabrielbelmonte"
+    },
+    {
+      "type": "Ko-fi",
+      "url": "https://ko-fi.com/gabrielbelmonte"
+    }
   ]
 }

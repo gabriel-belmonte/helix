@@ -24,6 +24,9 @@ packages/cli/helix-dashboard
 packages/cli/helix-tui
 packages/cli/release.sh
 
+# npm lockfile (we use bun.lock)
+package-lock.json
+
 # misc
 *.log
 .DS_Store

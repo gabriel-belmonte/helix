@@ -34,6 +34,10 @@
     "vercel"
   ],
   "author": "gabriel-belmonte",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gabriel-belmonte/helix"
+  },
   "license": "MIT",
   "dependencies": {
     "ai": "^5.0.0",

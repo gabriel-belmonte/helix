@@ -47,7 +47,7 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           gh release create "$VERSION" \
-            --title "Helix Agent CLI $VERSION" \
+            --title "Helix Agent $VERSION" \
             --notes "Native binaries (no Node required). Install: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh" \
             dist/helix-linux-aarch64 \
             dist/helix-linux-x64 \

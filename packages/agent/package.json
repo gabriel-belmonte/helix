@@ -1,6 +1,6 @@
 {
   "name": "helix-agent",
-  "version": "0.1.1",
+  "version": "0.2.5",
   "description": "Minimal TypeScript SDK to orchestrate AI agents and tools — a lightweight, transparent alternative to LangChain.",
   "type": "module",
   "main": "dist/src/index.js",

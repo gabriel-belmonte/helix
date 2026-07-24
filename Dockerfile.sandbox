@@ -1,17 +1,37 @@
+FROM node:24-bookworm-slim AS build
+
+# Install Bun
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && \
+    curl -fsSL https://bun.sh/install | bash && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PATH="/root/.bun/bin:${PATH}"
+
+# Copy monorepo config
+WORKDIR /helix
+COPY package.json bun.lock tsconfig.base.json turbo.json ./
+
+# Copy all packages
+COPY packages/agent/ packages/agent/
+COPY packages/core/ packages/core/
+COPY packages/cli/ packages/cli/
+COPY packages/mcp/ packages/mcp/
+COPY packages/eval/ packages/eval/
+COPY packages/memory/ packages/memory/
+
+RUN bun install && \
+    bunx turbo run build --filter=helix-agent-cli... && \
+    bun build packages/cli/cli.ts --compile --outfile /usr/local/bin/helix
+
+# ── Runtime image ────────────────────────────────────────────
 FROM node:24-bookworm-slim
 
-# Install dependencies needed by tools (git for repo ops, ripgrep for search)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       bash ca-certificates git ripgrep curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Helix CLI globally
-ARG HELIX_VERSION=latest
-RUN npm install -g --ignore-scripts helix-agent-cli@${HELIX_VERSION} 2>/dev/null || true
-
-# Fallback: copy from local build if npm publish not available
-COPY . /helix-src
+COPY --from=build /usr/local/bin/helix /usr/local/bin/helix
 
 WORKDIR /workspace
 ENTRYPOINT ["helix"]

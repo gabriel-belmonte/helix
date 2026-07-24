@@ -12,20 +12,21 @@ import {
 } from "./skill.js";
 import { makeMemoryTools, readSoul } from "helix-memory";
 
-// Default skill directories: ~/.helix/skills and ./skills (project-local).
+// Default skill directories: evaluated lazily so process.cwd() is current.
 import { homedir } from "node:os";
 import { join } from "node:path";
-// Default skill directories: ~/.helix/skills and ./skills (Helix-local),
-// plus the OpenCode/Claude-compatible locations (.claude/skills, .agents/skills)
-// so skills installed from skills.sh / OpenCode work without moving them.
-const DEFAULT_SKILL_DIRS = [
-  join(homedir(), ".helix", "skills"),
-  join(process.cwd(), "skills"),
-  join(homedir(), ".claude", "skills"),
-  join(process.cwd(), ".claude", "skills"),
-  join(homedir(), ".agents", "skills"),
-  join(process.cwd(), ".agents", "skills"),
-];
+
+function defaultSkillDirs(): string[] {
+  const cwd = process.cwd();
+  return [
+    join(homedir(), ".helix", "skills"),
+    join(cwd, "skills"),
+    join(homedir(), ".claude", "skills"),
+    join(cwd, ".claude", "skills"),
+    join(homedir(), ".agents", "skills"),
+    join(cwd, ".agents", "skills"),
+  ];
+}
 
 // Build the tool-list section of the system prompt from the actual tools.
 function renderToolList(tools: Tool[]): string {
@@ -60,7 +61,7 @@ export async function buildAgent(
   const tools = opts?.tools ?? await resolveTools(config, opts?.plugins ?? []);
 
   // Skills: discover + add the `use_skill` tool + guidance block.
-  const skillDirs = [...DEFAULT_SKILL_DIRS, ...(opts?.skillDirs ?? [])];
+  const skillDirs = [...defaultSkillDirs(), ...(opts?.skillDirs ?? [])];
   const skills: HelixSkill[] = discoverSkills(skillDirs);
   const allTools: Tool[] = [...tools, ...makeSkillTool(skills), ...makeMemoryTools()];
 

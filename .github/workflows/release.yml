@@ -41,6 +41,33 @@ jobs:
           bun build packages/cli/cli.ts --compile --target=bun-darwin-aarch64 --outfile=dist/helix-darwin-aarch64
           bun build packages/cli/cli.ts --compile --target=bun-darwin-x64     --outfile=dist/helix-darwin-x64
           bun build packages/cli/cli.ts --compile --target=bun-windows-x64    --outfile=dist/helix-windows-x64.exe
+      - name: Generate changelog
+        id: changelog
+        env:
+          VERSION: ${{ github.event.inputs.version || github.ref_name }}
+        run: |
+          PREV_TAG=$(git tag --sort=-creatordate | head -2 | tail -1)
+          [ -z "$PREV_TAG" ] && PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+          {
+            echo "### What's changed in ${VERSION}"
+            echo ""
+            git log --oneline "$PREV_TAG..HEAD" --no-decorate --format="* %s" \
+              | grep -v "^.*chore: save work from" \
+              | grep -v "^.*Merge branch " \
+              | grep -v "^.*Merge remote-tracking" \
+              | sed 's/^/  /' || true
+            echo ""
+            echo "📦 **Install:** \`curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh\`"
+            echo ""
+            echo "**Full changelog:** [\`$PREV_TAG..${VERSION}\`](https://github.com/gabriel-belmonte/helix/compare/$PREV_TAG...${VERSION})"
+          } > /tmp/changelog.md
+          cat /tmp/changelog.md
+          # Output for GITHUB_OUTPUT
+          {
+            echo "changelog<<EOF"
+            cat /tmp/changelog.md
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -48,7 +75,7 @@ jobs:
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           gh release create "$VERSION" \
             --title "Helix Agent $VERSION" \
-            --notes "Native binaries (no Node required). Install: curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh" \
+            --notes "${{ steps.changelog.outputs.changelog }}" \
             dist/helix-linux-aarch64 \
             dist/helix-linux-x64 \
             dist/helix-darwin-aarch64 \

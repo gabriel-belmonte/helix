@@ -3,9 +3,9 @@
 
 import chalk from "chalk";
 import ora from "ora";
-import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, ZEN_MODELS, fetchZenModels, isFreeModel, type HelixPlugin } from "helix-core";
+import { buildAgent, listCredentials, setKey, removeKey, maskSecret, PROVIDER_ENV, AUTH_PATH, ZEN_MODELS, fetchZenModels, isFreeModel, rollbackFile, restoreById, listCheckpoints, type HelixPlugin } from "helix-core";
 import { makeMcpPlugin } from "helix-mcp";
-import { makeCavemanPlugin, makeRtkPlugin, makeDelegatePlugin, type SubTaskInput, type SubTaskResult } from "helix-core";
+import { makeCavemanPlugin, makeRtkPlugin, makeDelegatePlugin, resolveRefs, type SubTaskInput, type SubTaskResult } from "helix-core";
 import { loadProvider } from "./src/provider.js";
 import { loadConfig, saveConfig, CONFIG_PATH, type HelixConfig } from "./src/config.js";
 import { runUpdate } from "./src/update.js";
@@ -62,7 +62,9 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix auth logout <provider>")} remove a stored key`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
-  console.log(`  ${chalk.cyan("helix learn <url|file>")}     create a skill from a URL or local file\n`);
+  console.log(`  ${chalk.cyan("helix learn <url|file>")}     create a skill from a URL or local file`);
+  console.log(`  ${chalk.cyan("helix rollback [path]")}     restore <path> from checkpoint (default: last)`);
+  console.log(`  ${chalk.cyan("helix rollback list")}       list available checkpoints\n`);
   console.log(`  ${chalk.cyan("helix models")}               list OpenCode Zen models (free highlighted)`);
   console.log(`  ${chalk.cyan("helix models select")}       interactive model picker (saves to config)`);
   console.log(`  ${chalk.cyan("helix models set <id>")}     set the model directly\n`);
@@ -695,6 +697,51 @@ async function handleLearn(target: string) {
   }
 }
 
+/**
+ * Handle `helix rollback <path|"last">` — restore a file from a snapshot.
+ */
+async function handleRollback(target: string) {
+  const { rollbackFile, restoreById, listCheckpoints } = await import("helix-core");
+
+  if (target === "list") {
+    const all = listCheckpoints(undefined, 20);
+    if (all.length === 0) {
+      console.log(chalk.yellow("!") + " No checkpoints available.");
+      return;
+    }
+    console.log(chalk.bold(`Checkpoints (${all.length}):`));
+    for (const c of all) {
+      const ts = new Date(c.time).toISOString().slice(0, 19).replace("T", " ");
+      console.log(`  ${chalk.cyan(c.id.padEnd(50))} ${String(c.size).padStart(8)} B  ${chalk.gray(ts)}  ${c.originalPath}`);
+    }
+    return;
+  }
+
+  if (target === "last") {
+    const all = listCheckpoints(undefined, 1);
+    if (all.length === 0) {
+      console.log(chalk.yellow("!") + " No checkpoints available.");
+      return;
+    }
+    const latest = all[0];
+    const result = rollbackFile(latest.originalPath);
+    if (result.success) {
+      console.log(chalk.green("✓") + " " + result.message);
+    } else {
+      console.log(chalk.red("✗") + " " + result.message);
+    }
+    return;
+  }
+
+  // Rollback by file path
+  const result = rollbackFile(target);
+  if (result.success) {
+    console.log(chalk.green("✓") + " " + result.message);
+  } else {
+    console.log(chalk.red("✗") + " " + result.message);
+  }
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -804,6 +851,12 @@ async function main() {
     return;
   }
 
+  // Rollback subcommand — restore a file from a checkpoint snapshot
+  if (opts.rollbackTarget !== undefined) {
+    await handleRollback(opts.rollbackTarget);
+    return;
+  }
+
   // Config subcommand
   if (opts.config) {
     if (opts.configGet) {
@@ -887,10 +940,16 @@ async function main() {
   if (opts.prompt) {
     if (opts.verbose) console.log(chalk.gray("→ prompt: " + opts.prompt));
 
+    // Resolve @-references in the prompt before passing to the agent
+    const resolvedPrompt = await resolveRefs(opts.prompt);
+    if (resolvedPrompt !== opts.prompt && opts.verbose) {
+      console.log(chalk.gray("→ refs resolved: " + resolvedPrompt.slice(0, 120) + "..."));
+    }
+
     if (opts.jsonMode) {
       // JSON mode: structured output for scripting
       const startTime = Date.now();
-      const reply = await agent.run(opts.prompt);
+      const reply = await agent.run(resolvedPrompt);
       const elapsed = Date.now() - startTime;
       appendHistory("user", opts.prompt);
       appendHistory("assistant", reply);
@@ -906,7 +965,7 @@ async function main() {
     const onChunk = (text: string) => {
       process.stdout.write(chalk.white(text));
     };
-    const reply = await agent.run(opts.prompt, onChunk);
+    const reply = await agent.run(resolvedPrompt, onChunk);
     // Persist this turn
     appendHistory("user", opts.prompt);
     appendHistory("assistant", reply);
@@ -923,11 +982,17 @@ async function main() {
     if (userInput.trim().toLowerCase() === "exit") break;
     if (!userInput.trim()) continue;
 
+    // Resolve @-references before passing to the agent
+    const resolvedInput = await resolveRefs(userInput);
+    if (resolvedInput !== userInput && opts.verbose) {
+      console.log(chalk.gray("→ refs resolved"));
+    }
+
     // Streaming in REPL
     const onChunk = (text: string) => {
       process.stdout.write(chalk.white(text));
     };
-    const reply = await agent.run(userInput, onChunk);
+    const reply = await agent.run(resolvedInput, onChunk);
     // Persist this turn
     appendHistory("user", userInput);
     appendHistory("assistant", reply);

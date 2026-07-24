@@ -1,0 +1,5 @@
+# Build outputs
+server/index.js
+server/index.js.map
+server/index.d.ts
+server/index.d.ts.map

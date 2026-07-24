@@ -4,6 +4,7 @@ import { defineTool } from "helix-agent";
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, relative, basename } from "node:path";
 import { execSync } from "node:child_process";
+import { checkpointBeforeWrite, rollbackTool } from "./checkpoint.js";
 
 function safePath(p: string): string {
   return resolve(process.cwd(), p);
@@ -20,10 +21,13 @@ export const readFile = defineTool(
 
 export const writeFile = defineTool(
   "write_file",
-  "Write text to a file (overwrites). Input: { path: string, content: string }",
+  "Write text to a file (overwrites). Snapshot is auto-created before overwriting so you can rollback later. Input: { path: string, content: string }",
   async (input: { path: string; content: string }) => {
-    writeFileSync(safePath(input.path), input.content, "utf8");
-    return { path: input.path, written: input.content.length };
+    const abs = safePath(input.path);
+    const ckpt = checkpointBeforeWrite(abs);
+    writeFileSync(abs, input.content, "utf8");
+    const extra = ckpt ? ` (checkpoint: ${ckpt})` : "";
+    return { path: input.path, written: input.content.length, checkpoint: ckpt ?? undefined };
   }
 );
 
@@ -152,4 +156,8 @@ Returns matching file paths and/or content lines.`,
   }
 );
 
-export const builtinTools = [readFile, writeFile, listDir, runBash, searchFiles];
+export const builtinTools = [readFile, writeFile, listDir, runBash, searchFiles, {
+  name: "rollback",
+  description: "Restore a file from a checkpoint (snapshot created before last write_file). Use rollback({ path: '<file>' }), rollback({ target: 'last' }), or rollback({ target: 'list' }).",
+  run: rollbackTool,
+}];

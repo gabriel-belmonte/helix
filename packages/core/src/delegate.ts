@@ -9,9 +9,9 @@
 //   6. Returns structured result to the parent
 
 import { spawnSync } from "node:child_process";
-import { writeFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { writeFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 
 import type { HelixPlugin, HelixTool } from "./registry.js";
 import type { LLMProvider } from "helix-agent";
@@ -37,15 +37,13 @@ export interface AgentConfig {
  */
 export function discoverAgents(cwd: string): AgentConfig[] {
   const agents: AgentConfig[] = [];
-  const fs = require("node:fs");
-  const os = require("node:os");
 
   // User agents
-  const userDir = join(os.homedir(), ".helix", "agents");
+  const userDir = join(homedir(), ".helix", "agents");
   try {
-    for (const f of fs.readdirSync(userDir)) {
+    for (const f of readdirSync(userDir)) {
       if (!f.endsWith(".json")) continue;
-      const cfg: AgentConfig = JSON.parse(fs.readFileSync(join(userDir, f), "utf-8"));
+      const cfg: AgentConfig = JSON.parse(readFileSync(join(userDir, f), "utf-8"));
       cfg.source = "user";
       cfg.filePath = join(userDir, f);
       agents.push(cfg);
@@ -55,9 +53,9 @@ export function discoverAgents(cwd: string): AgentConfig[] {
   // Project agents
   const projectDir = join(cwd, ".helix", "agents");
   try {
-    for (const f of fs.readdirSync(projectDir)) {
+    for (const f of readdirSync(projectDir)) {
       if (!f.endsWith(".json")) continue;
-      const cfg: AgentConfig = JSON.parse(fs.readFileSync(join(projectDir, f), "utf-8"));
+      const cfg: AgentConfig = JSON.parse(readFileSync(join(projectDir, f), "utf-8"));
       cfg.source = "project";
       cfg.filePath = join(projectDir, f);
       agents.push(cfg);
@@ -124,7 +122,7 @@ function runSubtask(input: SubTaskInput): SubTaskResult {
     executable = parts[0];
     args.push(...parts.slice(1));
   }
-  args.push("submit-task", taskFile, "--result", resultFile);
+  args.push("submit-task", taskFile, resultFile);
 
   // Spawn
   const proc = spawnSync(executable, args, {

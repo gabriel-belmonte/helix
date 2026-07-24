@@ -34,11 +34,10 @@ The fastest way — from the CLI:
 helix dashboard    # launches the web Dashboard on http://localhost:8799
 ```
 
-`helix dashboard` spawns the workspace server automatically (when run from a
-source checkout with Bun). In a standalone binary it prints the Docker command
-instead.
+The binary bundles the Dashboard server — no Docker needed. It runs in the same
+process and accesses `~/.helix/` directly (skills, auth, MCP, config all work).
 
-Or run it manually:
+Or run it from a source checkout:
 
 ```bash
 cd packages/web
@@ -54,12 +53,6 @@ bun run start    # serves UI + API on :8799
 ```
 
 Then open http://localhost:8799.
-
-With Docker (one command, persists your config in a volume):
-
-```bash
-docker compose up     # serves http://localhost:8799, mounts ~/.helix
-```
 
 > **Port note:** `:8787` is used by Hermes' local Firecrawl on this machine, so
 > Helix web defaults to `:8799`. Override with `PORT=... bun run start`.

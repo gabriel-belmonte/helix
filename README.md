@@ -1,75 +1,140 @@
 # 🧬 helix
 
 [![CI](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml/badge.svg)](https://github.com/gabriel-belmonte/helix/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/gabriel-belmonte/helix)](https://github.com/gabriel-belmonte/helix/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/written%20in-TypeScript-3178c6.svg)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-ready-00b894.svg)](https://modelcontextprotocol.io/)
-[![skills.sh compatible](https://img.shields.io/badge/skills.sh-compatible-ff4785.svg)](https://skills.sh/)
-[![Bun](https://img.shields.io/badge/toolchain-Bun%201.3.14-000000.svg)](https://bun.sh/)
+[![skills.sh](https://img.shields.io/badge/skills.sh-compatible-ff4785.svg)](https://skills.sh/)
+[![Bun](https://img.shields.io/badge/toolchain-Bun-000000.svg)](https://bun.sh/)
+![Platform](https://img.shields.io/badge/platform-Linux%20|%20macOS%20|%20Windows-6f42c1)
+[![npm](https://img.shields.io/npm/v/helix-agent)](https://www.npmjs.com/package/helix-agent)
 [![Sponsor](https://img.shields.io/badge/sponsor-Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=000)](https://buymeacoffee.com/gabrielbelmonte)
-[![Sponsor](https://img.shields.io/badge/sponsor-Ko--fi-29abe0?logo=ko-fi&logoColor=fff)](https://ko-fi.com/gabrielbelmonte)
 
-**A coding agent you can actually read.**
-
-Minimal, transparent TypeScript agent framework — a single readable core that
-every surface shares (CLI, TUI, web, Dashboard, Desktop). Modular, swappable
-modules. Bring your own LLM. **MCP + Skills compatible.**
-
-## Packages
-
-| Package | What it is | Install |
-|---|---|---|
-| [`helix-agent`](packages/agent) | The engine — Agent loop, tool dispatch, multi-turn memory | `npm i helix-agent` |
-| [`helix-core`](packages/core) | Single source of truth: tool registry, plugin system, web module, auth, skills, `buildAgent()` | `npm i helix-core` |
-| [`helix-mcp`](packages/mcp) | MCP (Model Context Protocol) client plugin — expose any MCP server's tools as local tools | `npm i helix-mcp` |
-| [`helix-agent-cli`](packages/cli) | Coding agent CLI (`helix`) — Bun-compiled binary | `npm i helix-agent-cli` |
-| [`helix-tui`](packages/tui) | Terminal UI (Ink) over the same core — chat, streaming, live tool calls | `npm i helix-tui` |
-| [`helix-agent-eval`](packages/eval) | Quality / cost / latency regression detection | `npm i helix-agent-eval` |
-| [`helix-memory`](packages/memory) | Modular memory (swappable `MemoryStore`, JSONL default) + remember/recall/reflect tools | `npm i helix-memory` |
-| [`helix-web`](packages/web) | Dashboard — web control panel (config, keys, skills, MCP, files, memory) | `npm i helix-web` |
-| [`helix-site`](packages/site) | Landing + docs ([live](https://gabriel-belmonte.github.io/helix-agent/)) | — |
-
-## Features
-
-- **One core, many surfaces** — CLI, TUI, and (soon) web/Dashboard/Desktop all
-  call the same `buildAgent()`. Behavior never diverges.
-- **Modular by default** — features like the `web` group (search + extract) are
-  independent, opt-in, and swappable via the plugin system.
-- **MCP support** — connect to any MCP server (stdio / http / sse) and use its
-  tools as if they were local. Works with the [skills.sh](https://skills.sh)
-  ecosystem too.
-- **Skills** — load specialized instructions on demand from `SKILL.md` folders.
-  Compatible with OpenCode / Claude Code skills (same `SKILL.md` format),
-  including skills published on [skills.sh](https://skills.sh).
-- **Secure by default** — API keys in `~/.helix/auth.json` (`chmod 600`),
-  resolved as `env var > stored`. No at-rest encryption theater.
-- **Bring your own LLM** — OpenAI, Anthropic, OpenRouter, HuggingFace,
-  OpenCode Zen, or any OpenAI-compatible endpoint.
+**A coding agent you can actually read.** Minimal, transparent TypeScript agent framework — CLI, TUI, and web Dashboard, all in one binary.
 
 ## Quick start
 
 ```bash
-# Install the CLI (Bun-compiled binary)
+# Install the unified binary (CLI + TUI + Dashboard, 1 file)
 curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
 
-# Or use the SDK
-npm i helix-core
+# Configure
+export OPENCODE_ZEN_API_KEY="sk-..."
+helix config set provider zen
+
+# Use it
+helix -p "refactor utils.ts to async/await"
+helix tui                          # Terminal UI (Ink)
+helix dashboard                    # Web Dashboard
+```
+
+## Features
+
+| Feature | CLI | TUI | Dashboard | SDK |
+|---------|:---:|:---:|:---------:|:---:|
+| **Agent loop** (multi-turn + tools) | ✅ | ✅ | ✅ | ✅ |
+| **Tool dispatch** (read, write, bash, search) | ✅ | ✅ | ✅ | ✅ |
+| **Web search + extract** (SearXNG) | ✅ | ✅ | — | ✅ |
+| **MCP servers** (Model Context Protocol) | ✅ | ✅ | — | ✅ |
+| **Skills** (skills.sh / OpenCode / Claude) | ✅ | ✅ | — | ✅ |
+| **Eval** (A/B comparison + LLM judge) | ✅ | — | — | ✅ |
+| **Sub-agents** (process isolation, Pi-style) | ✅ | — | — | ✅ |
+| **Provider fallback** (router chain) | ✅ | ✅ | — | ✅ |
+| **Model selector** (58 Zen models, free highlighted) | ✅ | ✅ | ✅ | — |
+| **Compression plugins** (RTK + Caveman) | ✅ | — | — | ✅ |
+| **Docker sandbox** (`--sandbox`) | ✅ | — | — | — |
+| **Memory** (persistent + soul persona) | ✅ | ✅ | ✅ | ✅ |
+
+## One binary, three surfaces
+
+```
+$ helix -p "prompt"       → CLI mode (scripting / pipes / CI)
+$ helix tui                → TUI (Ink terminal chat, Ctrl+M for model picker)
+$ helix dashboard          → Web Dashboard on :8799
+```
+
+All three share the same `buildAgent()` engine. Behavior never diverges.
+
+## Install
+
+### Binary (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/gabriel-belmonte/helix/main/packages/cli/install.sh | sh
+```
+
+Downloads a single compiled binary for your OS (Linux x64/ARM64, macOS Intel/Silicon, Windows x64).
+
+### npm (SDK only)
+
+```bash
+npm i helix-agent
 ```
 
 ```ts
-import { buildAgent } from "helix-core";
+import { Agent, scriptedLLM } from "helix-agent";
 
-const agent = await buildAgent(yourLLMProvider, {
-  config: { web: { search: true, extract: true } },
+const agent = new Agent({
+  name: "my-agent",
+  system: "You are helpful.",
+  llm: scriptedLLM(),
+  tools: [
+    { name: "greet", description: "Say hi", run: async () => "hello!" },
+  ],
 });
 
-const reply = await agent.run("List the files in src/");
+const reply = await agent.run("say hi");
+```
+
+### Docker
+
+```bash
+docker run --rm -it -v "$PWD:/workspace" ghcr.io/gabriel-belmonte/helix/helix-sandbox:latest -p "review this code"
+```
+
+## Packages
+
+| Package | What it is | Status |
+|---------|-----------|--------|
+| [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | 📦 **npm** |
+| [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | 🔒 internal |
+| [`helix-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | 🏗️ Bun binary |
+| [`helix-tui`](packages/tui) | Ink terminal UI | 🏗️ bundled in CLI |
+| [`helix-web`](packages/web) | Dashboard server (Hono) | 🏗️ bundled in CLI |
+| [`helix-mcp`](packages/mcp) | MCP client plugin | 🔒 internal |
+| [`helix-eval`](packages/eval) | A/B eval + LLM judge | 🔒 internal |
+| [`helix-memory`](packages/memory) | Modular memory (JSONL) | 🔒 internal |
+| [`helix-site`](packages/site) | Docs + landing (Astro) | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
+
+## CLI commands
+
+```
+  helix -p "prompt"              run a single prompt and exit
+  helix                           interactive REPL
+  helix -v                        verbose: show tool calls
+  helix -V, --version            show version
+  helix status                   show provider, model, API keys, web infra
+  helix tui                      launch Terminal UI (Ink)
+  helix dashboard                launch web Dashboard on :8799
+  helix config set <k> <v>       save config value
+  helix config list              show full config
+  helix auth login <provider>    store API key
+  helix auth list                show configured keys (masked)
+  helix models                   list Zen models (free highlighted)
+  helix models select            interactive model picker
+  helix eval --suite <f>         evaluate a model
+  helix eval --suite <f> --compare <slug>   A/B two models
+  helix eval --suite <f> --judge <slug>     LLM judge grading
+  helix submit-task <file>       run as isolated sub-agent
+  helix --sandbox -p "..."       run inside Docker sandbox
+  helix history clear            clear conversation history
+  helix update                   update to latest release
 ```
 
 ## Skills & MCP — verified example
 
-Helix connects to real MCP servers. This `helix.mcp.json` wires up the
-filesystem server and [Context7](https://context7.com) at once:
+Wire up real MCP servers with `helix.mcp.json`:
 
 ```json
 {
@@ -80,49 +145,103 @@ filesystem server and [Context7](https://context7.com) at once:
 }
 ```
 
-Install a skill from [skills.sh](https://skills.sh) with zero changes:
+Install skills from [skills.sh](https://skills.sh) with zero changes:
 
 ```bash
 git clone --depth 1 https://github.com/vercel-labs/agent-skills.git /tmp/as
-mkdir -p ~/.helix/skills
 cp -r /tmp/as/skills/react-best-practices ~/.helix/skills/
 ```
 
-See the [docs](https://gabriel-belmonte.github.io/helix-agent/helix/introduction/)
-for the full guide (MCP, Skills, API keys).
+## Providers
+
+Configure via `helix config set` or environment variables:
+
+| Provider | Config | Env var |
+|----------|--------|---------|
+| **OpenCode Zen** (free models) | `helix config set provider zen` | `OPENCODE_ZEN_API_KEY` |
+| **OpenAI** | `helix config set provider openai` | `OPENAI_API_KEY` |
+| **Anthropic** | `helix config set provider anthropic` | `ANTHROPIC_API_KEY` |
+| **OpenRouter** (free tier) | `helix config set provider openrouter` | `OPENROUTER_API_KEY` |
+| **HuggingFace** (free inference) | `helix config set provider hf` | `HF_TOKEN` |
+
+Free Zen models: `deepseek-v4-flash-free`, `mimo-v2.5-free`, `nemotron-3-ultra-free`, `north-mini-code-free`, `ling-3.0-flash-free`, `laguna-s-2.1-free`
+
+## Sub-agents (Pi-style)
+
+Delegate tasks to isolated child processes:
+
+```bash
+helix submit-task '{"goal": "review src/index.ts for bugs", "context": "focus on security"}'
+```
+
+Returns structured result with usage stats:
+```json
+{ "result": "...", "agent": "sub-agent", "exitCode": 0, "usage": {"input": 45, "output": 120, "turns": 1} }
+```
+
+## Eval
+
+Compare models quality / cost / latency:
+
+```bash
+helix eval --suite test.json --compare mimo-v2.5-free
+helix eval --suite test.json --judge deepseek-v4-flash-free
+```
+
+## Architecture
+
+```
+                  ┌──────────────┐
+                  │   helix CLI   │  bun --compile unified binary
+                  │  (cli.ts)     │
+                  └──────┬───────┘
+                         │ buildAgent()
+                  ┌──────▼───────┐
+                  │  helix-core   │  Tool registry · Plugin system
+                  │  (core/)      │  Web infra · Auth · Skills
+                  └──────┬───────┘
+          ┌───────────────┼───────────────┐
+   ┌──────▼──────┐ ┌──────▼──────┐ ┌──────▼──────┐
+   │ helix-agent  │ │ helix-mcp   │ │ helix-memory │
+   │ Engine ·     │ │ MCP client  │ │ JSONL store  │
+   │ Providers    │ │ plugin      │ │ Soul persona │
+   └──────────────┘ └──────────────┘ └──────────────┘
+```
 
 ## Development
 
-This is a monorepo managed with **Bun** + Turborepo.
-
 ```bash
-bun install            # install all deps
-bunx turbo run build   # build all packages
-bunx turbo run test    # test all packages
+git clone https://github.com/gabriel-belmonte/helix.git
+cd helix
+bun install
+bunx turbo run build          # build all packages
+bunx turbo run test           # test all packages
+bun build packages/cli/cli.ts --compile --outfile helix   # compile unified binary
 ```
 
-### Project structure
+### Structure
 
 ```
 helix/
 ├── packages/
-│   ├── agent/     → npm i helix-agent        (engine)
-│   ├── core/      → npm i helix-core         (single source of truth)
-│   ├── mcp/       → npm i helix-mcp           (MCP client plugin)
-│   ├── cli/       → helix CLI (Bun binary)
-│   ├── tui/       → npm i helix-tui           (Ink terminal UI)
-│   ├── eval/      → npm i helix-agent-eval    (regression detection)
-│   └── site/      → Astro + Starlight docs    (GitHub Pages)
-├── turbo.json     → task orchestration
-└── package.json   → Bun workspace root
+│   ├── agent/       → helix-agent     (npm: engine SDK)
+│   ├── core/        → helix-core      (internal: registry, plugins, web, auth)
+│   ├── cli/         → helix binary    (compiled CLI + TUI + Dashboard)
+│   ├── tui/         → Ink TUI         (bundled in CLI binary)
+│   ├── web/         → Hono dashboard  (bundled in CLI binary)
+│   ├── mcp/         → MCP client      (internal plugin)
+│   ├── eval/        → A/B eval        (internal)
+│   ├── memory/      → JSONL memory    (internal)
+│   └── site/        → Astro docs      (GitHub Pages)
+├── turbo.json       → task orchestration
+└── package.json     → Bun workspace root
 ```
 
-## Why
+## Why helix
 
 - **LangChain** is heavy, opaque, hard to debug.
 - **Most frameworks** lock you into their LLM client.
-- **helix** is minimal and transparent. You read the core in one sitting,
-  extend it in an afternoon, and swap any module without forking.
+- **helix** is minimal and transparent. You read the core in one sitting, extend it in an afternoon, and swap any module without forking.
 
 ## License
 
@@ -130,9 +249,5 @@ MIT © gabriel-belmonte
 
 ## Sponsor
 
-If Helix saves you time, you can support its development:
-
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=000)](https://buymeacoffee.com/gabrielbelmonte)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-29abe0?style=for-the-badge&logo=ko-fi&logoColor=fff)](https://ko-fi.com/gabrielbelmonte)
-
-➡️ https://buymeacoffee.com/gabrielbelmonte · https://ko-fi.com/gabrielbelmonte

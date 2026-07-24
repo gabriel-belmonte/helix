@@ -99,11 +99,11 @@ docker run --rm -it -v "$PWD:/workspace" ghcr.io/gabriel-belmonte/helix/helix-sa
 |---------|-----------|--------|
 | [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | 📦 **npm** |
 | [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | 🔒 internal |
-| [`helix-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | 🏗️ Bun binary |
+| [`helix-agent-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | 🏗️ Bun binary |
 | [`helix-tui`](packages/tui) | Ink terminal UI | 🏗️ bundled in CLI |
 | [`helix-web`](packages/web) | Dashboard server (Hono) | 🏗️ bundled in CLI |
 | [`helix-mcp`](packages/mcp) | MCP client plugin | 🔒 internal |
-| [`helix-eval`](packages/eval) | A/B eval + LLM judge | 🔒 internal |
+| [`helix-agent-eval`](packages/eval) | A/B eval + LLM judge | 🔒 internal |
 | [`helix-memory`](packages/memory) | Modular memory (JSONL) | 🔒 internal |
 | [`helix-site`](packages/site) | Docs + landing (Astro) | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
 

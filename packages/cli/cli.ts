@@ -72,7 +72,6 @@ interface CliOpts {
   tui?: boolean;
   submitTask?: string;   // path to task JSON file
   submitResult?: string; // path to write result JSON
-  sandboxRun?: string;   // prompt to run inside Docker sandbox
   sandboxTool?: boolean; // flag for sandboxed tool routing
 }
 
@@ -113,8 +112,7 @@ function parseArgs(argv: string[]): CliOpts {
       opts.submitResult = argv[++i];   // path to result JSON
     }
     else if (a === "--sandbox") {
-      // helix --sandbox -p "prompt" — run in Docker sandbox
-      opts.sandboxRun = argv[++i];     // next arg is the prompt
+      opts.sandboxTool = true; // flag — prompt comes via -p, not next arg
     }
     else if (a === "-h" || a === "--help") {
       printHelp();
@@ -214,10 +212,11 @@ function printHelp() {
   console.log(`  ${chalk.cyan("zen")}     OpenCode Zen (free Big Pickle)  → set provider zen; key=OPENCODE_ZEN_API_KEY`);
   console.log(`  ${chalk.cyan("hf")}      HuggingFace router (free)        → set provider hf;   key=HF_TOKEN`);
   console.log(`  ${chalk.cyan("openrouter")}  OpenRouter free tier            → set provider openrouter; key=OPENROUTER_API_KEY`);
-  console.log(`  ${chalk.cyan("openai")}  OpenAI                              → set provider openai; key=OPENAI_API_KEY\n`);
+  console.log(`  ${chalk.cyan("openai")}  OpenAI                              → set provider openai; key=OPENAI_API_KEY`);
+  console.log(`  ${chalk.cyan("anthropic")}  Anthropic                          → set provider anthropic; key=ANTHROPIC_API_KEY\n`);
 
   console.log(chalk.bold("CONFIG KEYS"));
-  console.log(`  ${chalk.cyan("provider")}      one of: zen | hf | openrouter | openai`);
+  console.log(`  ${chalk.cyan("provider")}      one of: zen | hf | openrouter | openai | anthropic`);
   console.log(`  ${chalk.cyan("model")}         model slug (e.g. big-pickle, Qwen/Qwen3-Coder-Next)`);
   console.log(`  ${chalk.cyan("zenBaseUrl")}   override Zen endpoint`);
   console.log(`  ${chalk.cyan("hfBaseUrl")}    override HF endpoint\n`);
@@ -902,8 +901,12 @@ async function main() {
   }
 
   // Sandbox subcommand — run inside Docker container
-  if (opts.sandboxRun) {
-    await runSandbox(opts.sandboxRun);
+  if (opts.sandboxTool) {
+    if (!opts.prompt) {
+      console.error(chalk.red("✗") + " --sandbox requires -p <prompt>");
+      process.exit(1);
+    }
+    await runSandbox(opts.prompt);
     return;
   }
 

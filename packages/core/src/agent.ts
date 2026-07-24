@@ -52,10 +52,12 @@ export async function buildAgent(
     initialHistory?: ChatMessage[];
     // Extra skill directories to scan (e.g. a user-provided path).
     skillDirs?: string[];
+    /** Override tool set (instead of resolving from config/plugins). */
+    tools?: Tool[];
   }
 ): Promise<Agent> {
   const config = opts?.config ?? { web: { search: false, extract: false } };
-  const tools = await resolveTools(config, opts?.plugins ?? []);
+  const tools = opts?.tools ?? await resolveTools(config, opts?.plugins ?? []);
 
   // Skills: discover + add the `use_skill` tool + guidance block.
   const skillDirs = [...DEFAULT_SKILL_DIRS, ...(opts?.skillDirs ?? [])];

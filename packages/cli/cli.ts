@@ -12,6 +12,7 @@ import { runUpdate } from "./src/update.js";
 import { handleEval, type EvalCliOpts } from "./src/eval.js";
 import { appendHistory, loadHistory, clearHistory } from "./src/history.js";
 import type { ChatMessage, LLMProvider } from "helix-agent";
+import { Agent } from "helix-agent";
 import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { join, dirname } from "node:path";
@@ -610,13 +611,16 @@ async function handleSubmitTask(taskPath: string, resultPath?: string) {
     process.exit(1);
   }
 
-  const llm = loadProvider({ scripted: true });
-  const plugins: HelixPlugin[] = [makeDelegatePlugin()];
+  const llm = loadProvider({ scripted: false });
 
-  // Sub-agents get read-only tools by default.
-  const agent = await buildAgent(llm, {
-    config: { web: { search: false, extract: false } },
-    plugins,
+  // Sub-agent: no tools — must reply directly from goal + context only.
+  // If the task needs file data, the parent passes it via `context`.
+  const agent = new Agent({
+    name: "sub-agent",
+    system: "You are a focused sub-agent. Answer the user's task directly.",
+    llm,
+    tools: [],
+    maxSteps: 3,
   });
 
   const startTime = Date.now();

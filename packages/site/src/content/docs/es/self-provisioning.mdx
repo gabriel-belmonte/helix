@@ -22,8 +22,11 @@ docker run -d --name helix-searxng --restart unless-stopped \
 
 luego espera (hasta ~30s) a que el endpoint `/search?q=…&format=json` responda.
 
-Si Docker no está disponible, la búsqueda simplemente se desactiva (con un
-warning) mientras la extracción sigue funcionando.
+> **Nota:** Helix detecta automáticamente la disponibilidad de Docker — prueba
+> con `docker` primero (Docker Desktop en macOS/Windows, Linux con root), luego
+> intenta `sudo docker` (Linux donde el usuario no está en el grupo `docker`).
+> Si Docker no está disponible, la búsqueda simplemente se desactiva (con un
+> warning) mientras la extracción sigue funcionando.
 
 ## Extracción: servidor compatible Firecrawl (sin Docker)
 

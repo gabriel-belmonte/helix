@@ -31,8 +31,7 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.18",
     "@ai-sdk/openai": "^4.0.18",
-    "ai": "^7.0.35",
-    "react-devtools-core": "^7.0.1"
+    "ai": "^7.0.35"
   },
   "funding": [
     {

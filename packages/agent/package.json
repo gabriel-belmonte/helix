@@ -39,13 +39,15 @@
     "url": "https://github.com/gabriel-belmonte/helix"
   },
   "license": "MIT",
-  "dependencies": {
-    "ai": "^5.0.0",
-    "@ai-sdk/openai": "^2.0.0",
-    "@ai-sdk/anthropic": "^2.0.0"
+  "dependencies": {},
+  "peerDependencies": {
+    "ai": "^7.0.35"
   },
-  "peerDependencies": {},
-  "peerDependenciesMeta": {},
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": false
+    }
+  },
   "devDependencies": {
     "typescript": "^5.4.0",
     "tsx": "^4.7.0",

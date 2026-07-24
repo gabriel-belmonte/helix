@@ -48,6 +48,12 @@ jobs:
           bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-darwin-aarch64 --outfile=dist/helix-tui-darwin-aarch64
           bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-darwin-x64     --outfile=dist/helix-tui-darwin-x64
           bun build packages/tui/src/tui.tsx --compile $TUI_EXTRA --target=bun-windows-x64    --outfile=dist/helix-tui-windows-x64.exe
+          # Compile the Dashboard companion binary for each platform.
+          bun build packages/web/server/index.ts --compile --target=bun-linux-aarch64  --outfile=dist/helix-dashboard-linux-aarch64
+          bun build packages/web/server/index.ts --compile --target=bun-linux-x64      --outfile=dist/helix-dashboard-linux-x64
+          bun build packages/web/server/index.ts --compile --target=bun-darwin-aarch64 --outfile=dist/helix-dashboard-darwin-aarch64
+          bun build packages/web/server/index.ts --compile --target=bun-darwin-x64     --outfile=dist/helix-dashboard-darwin-x64
+          bun build packages/web/server/index.ts --compile --target=bun-windows-x64    --outfile=dist/helix-dashboard-windows-x64.exe
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,4 +72,9 @@ jobs:
             dist/helix-tui-darwin-aarch64 \
             dist/helix-tui-darwin-x64 \
             dist/helix-tui-windows-x64.exe \
+            dist/helix-dashboard-linux-aarch64 \
+            dist/helix-dashboard-linux-x64 \
+            dist/helix-dashboard-darwin-aarch64 \
+            dist/helix-dashboard-darwin-x64 \
+            dist/helix-dashboard-windows-x64.exe \
             packages/cli/install.sh

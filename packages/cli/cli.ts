@@ -155,7 +155,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix -v")}                   verbose: show tool calls`);
   console.log(`  ${chalk.cyan("helix -V, --version")}       show CLI version`);
   console.log(`  ${chalk.cyan("helix status")}              show provider, model and API-key status`);
-  console.log(`  ${chalk.cyan("helix dashboard")}           launch the web Dashboard on :8799`);
+  console.log(`  ${chalk.cyan("helix dashboard")}           launch the web Dashboard`);
   console.log(`  ${chalk.cyan("helix tui")}                 launch the terminal UI (Ink chat)`);
   console.log(`  ${chalk.cyan("helix config set <k> <v>")}  save a config value`);
   console.log(`  ${chalk.cyan("helix config get [k]")}         show config (or one key)`);
@@ -433,22 +433,20 @@ async function statusWebInfra() {
 }
 
 // Launch the Helix Dashboard (web control panel) on :8799.
-// In a dev checkout it spawns the workspace server with Bun; in a standalone
-// binary it detects Docker and offers to run the containerized dashboard.
+// Priority: companion binary > dev checkout > Docker > instructions.
 async function runDashboard() {
   const PORT = process.env.PORT ?? "8799";
   const here = import.meta.dirname ?? ".";
 
-  // 1) Dev checkout: spawn the workspace server with Bun.
-  const serverCandidate = join(here, "../web/server/index.ts");
-  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
-  if (existsSync(serverCandidate) && bun) {
+  // 1) Companion binary (helix-dashboard) alongside the CLI.
+  const cliPath = process.execPath;
+  const companion = join(dirname(cliPath), "helix-dashboard");
+  if (existsSync(companion)) {
     const sp = ora({ text: "Starting Helix Dashboard…", color: "cyan" }).start();
-    const child = spawn(bun, [serverCandidate], {
+    const child = spawn(companion, [], {
       stdio: "ignore",
       env: { ...process.env, PORT },
     });
-    // Wait a moment then check if it's up.
     await new Promise((r) => setTimeout(r, 2000));
     const ok = await fetch(`http://localhost:${PORT}/api/health`)
       .then((r) => r.ok).catch(() => false);
@@ -461,7 +459,28 @@ async function runDashboard() {
     return;
   }
 
-  // 2) Docker available: run the containerized dashboard.
+  // 2) Dev checkout: spawn the workspace server with Bun.
+  const serverCandidate = join(here, "../web/server/index.ts");
+  const bun = process.env.PATH?.split(":").map((d) => join(d, "bun")).find((p) => existsSync(p));
+  if (existsSync(serverCandidate) && bun) {
+    const sp = ora({ text: "Starting Helix Dashboard…", color: "cyan" }).start();
+    const child = spawn(bun, [serverCandidate], {
+      stdio: "ignore",
+      env: { ...process.env, PORT },
+    });
+    await new Promise((r) => setTimeout(r, 2000));
+    const ok = await fetch(`http://localhost:${PORT}/api/health`)
+      .then((r) => r.ok).catch(() => false);
+    if (ok) {
+      sp.succeed(`Helix Dashboard running on http://localhost:${PORT}`);
+    } else {
+      sp.warn("Dashboard may still be starting…");
+    }
+    child.unref();
+    return;
+  }
+
+  // 3) Docker available: fallback.
   const dockerPaths = ["docker", "/usr/bin/docker", "/usr/local/bin/docker"];
   const hasDocker = dockerPaths.some((p) => existsSync(p));
   if (hasDocker) {

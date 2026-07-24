@@ -62,6 +62,7 @@ function printHelp() {
   console.log(`  ${chalk.cyan("helix auth logout <provider>")} remove a stored key`);
   console.log(`  ${chalk.cyan("helix history clear")}        clear conversation history`);
   console.log(`  ${chalk.cyan("helix update")}               update to latest release\n`);
+  console.log(`  ${chalk.cyan("helix learn <url|file>")}     create a skill from a URL or local file\n`);
   console.log(`  ${chalk.cyan("helix models")}               list OpenCode Zen models (free highlighted)`);
   console.log(`  ${chalk.cyan("helix models select")}       interactive model picker (saves to config)`);
   console.log(`  ${chalk.cyan("helix models set <id>")}     set the model directly\n`);
@@ -678,6 +679,22 @@ async function handleSubmitTask(taskPath: string, resultPath?: string) {
   }
 }
 
+/**
+ * Handle `helix learn <url|file>` — read content from a URL or local file
+ * and create a persistent skill from it.
+ */
+async function handleLearn(target: string) {
+  const { createSkillFromSource } = await import("helix-core");
+  try {
+    const result = await createSkillFromSource(target);
+    console.log(chalk.green("✓") + " " + result.message);
+    console.log(chalk.gray(`  Created skill "${result.name}" — ${result.dir}`));
+  } catch (e: any) {
+    console.error(chalk.red("✗") + " " + e.message);
+    process.exit(1);
+  }
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
 
@@ -778,6 +795,12 @@ async function main() {
   // Submit-task subcommand — run as sub-agent (process isolation)
   if (opts.submitTask) {
     await handleSubmitTask(opts.submitTask, opts.submitResult);
+    return;
+  }
+
+  // Learn subcommand — create a skill from URL or file
+  if (opts.learnTarget) {
+    await handleLearn(opts.learnTarget);
     return;
   }
 

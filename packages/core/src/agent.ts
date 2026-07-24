@@ -8,6 +8,7 @@ import {
   discoverSkills,
   renderSkillGuidance,
   makeSkillTool,
+  makeSkillManagementTools,
   type HelixSkill,
 } from "./skill.js";
 import { makeMemoryTools, readSoul } from "helix-memory";
@@ -63,7 +64,7 @@ export async function buildAgent(
   // Skills: discover + add the `use_skill` tool + guidance block.
   const skillDirs = [...defaultSkillDirs(), ...(opts?.skillDirs ?? [])];
   const skills: HelixSkill[] = discoverSkills(skillDirs);
-  const allTools: Tool[] = [...tools, ...makeSkillTool(skills), ...makeMemoryTools()];
+  const allTools: Tool[] = [...tools, ...makeSkillTool(skills), ...makeSkillManagementTools(), ...makeMemoryTools()];
 
   // Persona (human-authored soul.md) + accumulated memory context.
   const soul = readSoul();

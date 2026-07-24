@@ -38,6 +38,7 @@ export interface CliOpts {
   submitTask?: string;
   submitResult?: string;
   sandboxTool?: boolean;
+  learnTarget?: string;  // URL or file path for `helix learn`
 }
 
 export function parseArgs(argv: string[]): CliOpts {
@@ -80,6 +81,9 @@ export function parseArgs(argv: string[]): CliOpts {
       opts.sandboxTool = true;
     }
     else if (a === "update") opts.update = true;
+    else if (a === "learn") {
+      opts.learnTarget = argv[++i]; // next arg is URL or file path
+    }
     else if (a === "auth") {
       opts.auth = true;
       const sub = argv[++i];

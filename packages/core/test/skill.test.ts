@@ -6,6 +6,7 @@ import {
   discoverSkills,
   renderSkillGuidance,
   makeSkillTool,
+  makeSkillManagementTools,
 } from "../src/skill.js";
 
 let dir: string;
@@ -67,4 +68,81 @@ test("skill alias is also registered (OpenCode-compatible)", async () => {
   const names = tools.map((t) => t.name);
   assert.ok(names.includes("use_skill"));
   assert.ok(names.includes("skill"));
+});
+
+// ── Skill Management Tools (create/edit/delete) ──────────────────────
+
+test("create_skill creates SKILL.md with frontmatter", async () => {
+  const [create] = makeSkillManagementTools(dir);
+  const result = await create.run({ name: "test-skill", description: "Test description", body: "# Test\n\nInstructions here." });
+  assert.match(result as string, /Created skill "test-skill"/);
+
+  // Verify on disk
+  const skills = discoverSkills([dir]);
+  assert.strictEqual(skills.length, 1);
+  assert.strictEqual(skills[0].name, "test-skill");
+  assert.strictEqual(skills[0].description, "Test description");
+  assert.match(skills[0].body, /Instructions here\./);
+});
+
+test("create_skill rejects invalid name", async () => {
+  const [create] = makeSkillManagementTools(dir);
+  const result = await create.run({ name: "bad name!", description: "", body: "x" });
+  assert.match(result as string, /Invalid skill name/);
+  const skills = discoverSkills([dir]);
+  assert.strictEqual(skills.length, 0);
+});
+
+test("create_skill rejects duplicate name", async () => {
+  const [create] = makeSkillManagementTools(dir);
+  await create.run({ name: "dup", description: "d1", body: "one" });
+  const result = await create.run({ name: "dup", description: "d2", body: "two" });
+  assert.match(result as string, /already exists/);
+});
+
+test("edit_skill updates body and optionally description", async () => {
+  const tools = makeSkillManagementTools(dir);
+  const [create, edit] = tools;
+  await create.run({ name: "editable", description: "original", body: "# Original" });
+  const result = await edit.run({ name: "editable", body: "# Updated", description: "new desc" });
+
+  assert.match(result as string, /Updated skill "editable"/);
+  const skills = discoverSkills([dir]);
+  assert.strictEqual(skills.length, 1);
+  assert.strictEqual(skills[0].name, "editable");
+  assert.strictEqual(skills[0].description, "new desc");
+  assert.match(skills[0].body, /Updated/);
+});
+
+test("edit_skill preserves description when not provided", async () => {
+  const tools = makeSkillManagementTools(dir);
+  const [create, edit] = tools;
+  await create.run({ name: "preserve", description: "keep-me", body: "# Before" });
+  const result = await edit.run({ name: "preserve", body: "# After" });
+  assert.match(result as string, /Updated skill "preserve"/);
+  const skills = discoverSkills([dir]);
+  assert.strictEqual(skills[0].description, "keep-me");
+});
+
+test("edit_skill errors on missing skill", async () => {
+  const [, edit] = makeSkillManagementTools(dir);
+  const result = await edit.run({ name: "nope", body: "x" });
+  assert.match(result as string, /not found/);
+});
+
+test("delete_skill removes skill directory", async () => {
+  const tools = makeSkillManagementTools(dir);
+  const [create, , remove] = tools;
+  await create.run({ name: "delete-me", description: "to-go", body: "bye" });
+  assert.strictEqual(discoverSkills([dir]).length, 1);
+
+  const result = await remove.run({ name: "delete-me" });
+  assert.match(result as string, /Deleted skill "delete-me"/);
+  assert.strictEqual(discoverSkills([dir]).length, 0);
+});
+
+test("delete_skill errors on missing skill", async () => {
+  const [, , remove] = makeSkillManagementTools(dir);
+  const result = await remove.run({ name: "ghost" });
+  assert.match(result as string, /not found/);
 });

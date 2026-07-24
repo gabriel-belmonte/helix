@@ -54,13 +54,7 @@ bun run start    # serves UI + API on :8799
 
 Then open http://localhost:8799.
 
-Or run with Docker Compose (persists your config via a volume mount):
-
-```bash
-docker compose up     # serves http://localhost:8799, mounts ~/.helix
-```
-
-> **Port note:** The Dashboard defaults to `:8799`. Override with `PORT=... bun run start`.
+> **Port note:** The default port is `:8799`. Override with `PORT=... bun run start`.
 
 ## Configure your API key from the web
 

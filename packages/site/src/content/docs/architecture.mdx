@@ -10,7 +10,7 @@ and every surface is a thin adapter.
 
 ```text
 packages/
-  core/        ← SOURCE OF TRUTH (helix-core)
+  core/        ← single source of truth (helix-core)
     src/registry.ts     ToolRegistry + PluginSystem + config schema
     src/builtins.ts     read_file, write_file, list_dir, run_bash, search_files
     src/web_search.ts   createWebSearchTool()  (opt-in, SearXNG)
@@ -21,7 +21,7 @@ packages/
   agent/       ← the raw engine (helix-agent)
   eval/        ← quality/cost regression
   site/        ← this site + docs
-  (tui/ web/ desktop/ ← surfaces, all consume core)
+  (tui/ web/ desktop/ — thin surfaces, all consume core)
 ```
 
 ## Core responsibilities
@@ -46,9 +46,9 @@ packages/
 
 ## Why this shape
 
-This "single source of truth" design means one package owns the runtime, and
-every surface is a thin adapter. Splitting the runtime into `helix-core` means
-a bug fixed (or a module added) in one place benefits every surface at once.
+The single-source-of-truth design means a bug fixed (or a module added)
+in `helix-core` benefits every surface at once — CLI, TUI, web, Dashboard,
+and Desktop all share the same runtime.
 
 ## Surfaces
 

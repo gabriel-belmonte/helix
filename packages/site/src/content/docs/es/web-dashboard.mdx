@@ -35,9 +35,9 @@ La forma más rápida — desde la CLI:
 helix dashboard    # lanza el Dashboard web en http://localhost:8799
 ```
 
-`helix dashboard` arranca el server del workspace automáticamente (cuando se
-ejecuta desde un checkout con código fuente y Bun). En un binario standalone
-imprime el comando de Docker en su lugar.
+El binario incluye el servidor del Dashboard — no necesita Docker. Se ejecuta
+en el mismo proceso y accede directamente a `~/.helix/` (skills, auth, MCP,
+config funcionan todos).
 
 O ejecútalo manualmente:
 
@@ -55,16 +55,6 @@ bun run start    # sirve UI + API en :8799
 ```
 
 Luego abre http://localhost:8799.
-
-Con Docker (un comando, persiste tu config en un volumen):
-
-```bash
-docker compose up     # sirve http://localhost:8799, monta ~/.helix
-```
-
-> **Nota de puerto:** el `:8787` lo usa el Firecrawl local de Hermes en esta
-> máquina, así que el dashboard de Helix usa `:8799` por defecto. Override con
-> `PORT=... bun run start`.
 
 ## Configura tu API key desde la web
 

@@ -28,11 +28,16 @@ helix -v -p "lista los archivos en src/"        # verbose: muestra las llamadas 
 | `-v, --verbose` | imprime las llamadas a tools en vivo |
 | `-c, --cwd <dir>` | ejecuta en otro directorio de trabajo |
 | `--scripted` | usa el LLM determinista integrado (sin red, sin claves) — ideal para probar |
+| `--sandbox` | ejecuta dentro de un contenedor Docker sandbox (implica `-p`) |
+| `--json` | output JSON estructurado para scripting / CI |
+| `--web` | activa `web_search` (SearXNG) + `web_extract` (compatible Firecrawl) |
+| `--web-search` | activa solo búsqueda web |
+| `--web-extract` | activa solo extracción web |
 
 ## Config
 
 ```bash
-helix config set provider zen        # uno de: zen | hf | openrouter | openai
+helix config set provider zen        # uno de: zen | hf | openrouter | openai | anthropic
 helix config set model big-pickle
 helix config get                     # muestra toda la config
 helix config get model               # muestra una clave
@@ -72,6 +77,34 @@ output de herramientas:
 Se apilan: RTK primero (compresión estructural), luego Caveman (compresión
 textual). Juntos reducen los tokens de output de herramientas un **50–80%**
 con pérdida mínima de información.
+
+## Búsqueda web
+
+Helix puede buscar en la web con dos tools: `web_search` (motor de búsqueda) y
+`web_extract` (contenido de página). Actívalas por comando con el flag `--web`:
+
+```bash
+helix --web -p "busca las últimas noticias de TypeScript"
+helix --web-search -p "¿qué tiempo hace en Londres?"    # solo búsqueda
+helix --web-extract -p "resume https://example.com"      # solo extracción
+```
+
+Para mantener web activo **por defecto** (sin flag `--web`), añádelo a la config:
+
+```bash
+# Vía CLI:
+helix config set web '{"search":true,"extract":true}'
+
+# O editar ~/.helix/config.json directamente:
+#   { "web": { "search": true, "extract": true } }
+```
+
+Los flags CLI (`--web`, `--web-search`, `--web-extract`) siempre tienen prioridad
+sobre la config guardada — úsalos para sobreescribir temporalmente.
+
+Las herramientas web necesitan una instancia de SearXNG ejecutándose (u otro
+backend de búsqueda). El Dashboard containerizado de Helix incluye una; los
+usuarios standalone pueden apuntar Helix a la suya vía la config `infra`.
 
 ## Claves API (auth)
 

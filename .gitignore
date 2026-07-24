@@ -18,6 +18,12 @@ internal/
 HELIX-AUDIT-COMPARISON.md
 HELIX-ROADMAP.md
 
+# compiled binaries (built by release workflow — don't track in git)
+packages/cli/helix
+packages/cli/helix-dashboard
+packages/cli/helix-tui
+packages/cli/release.sh
+
 # misc
 *.log
 .DS_Store

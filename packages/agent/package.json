@@ -22,8 +22,7 @@
     "build": "tsc",
     "test": "tsx --test test/*.test.ts",
     "demo": "tsx examples/hello-agent.ts",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rm -rf dist"
   },
   "keywords": [
     "ai",
@@ -36,21 +35,17 @@
   ],
   "author": "gabriel-belmonte",
   "license": "MIT",
-  "peerDependencies": {
-    "ai": ">=4.0.0"
+  "dependencies": {
+    "ai": "^5.0.0",
+    "@ai-sdk/openai": "^2.0.0",
+    "@ai-sdk/anthropic": "^2.0.0"
   },
-  "peerDependenciesMeta": {
-    "ai": {
-      "optional": true
-    }
-  },
+  "peerDependencies": {},
+  "peerDependenciesMeta": {},
   "devDependencies": {
     "typescript": "^5.4.0",
     "tsx": "^4.7.0",
-    "@types/node": "^20.11.0",
-    "ai": "^4.0.0",
-    "@ai-sdk/openai": "^1.0.0",
-    "@ai-sdk/anthropic": "^1.0.0"
+    "@types/node": "^20.11.0"
   },
   "publishConfig": {
     "access": "public",

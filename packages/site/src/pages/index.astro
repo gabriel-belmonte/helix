@@ -32,10 +32,11 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
       <div class="nav-links">
         <a href="#why">why</a>
         <a href="#ecosystem">ecosystem</a>
+        <a href="#quickstart">quickstart</a>
         <a href="#code">code</a>
         <a href="#features">features</a>
         <a href="/helix/introduction/">docs ↗</a>
-        <a href="https://github.com/gabriel-belmonte/helix">github ↗</a>
+        <a href="https://github.com/gabriel-belmonte/helix" rel="noopener noreferrer">github ↗</a>
       </div>
     </div>
   </nav>
@@ -53,7 +54,7 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
           swappable — bring your own LLM, your own search, your own anything.
         </p>
         <div class="hero-cta">
-          <a class="btn accent" href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli">
+          <a class="btn accent" href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli" rel="noopener noreferrer">
             ★ install helix
           </a>
           <a class="btn ghost" href="#code">see the code</a>
@@ -71,14 +72,15 @@ const codeSnippet = `<span class="k">import</span> { Agent, defineTool } <span c
       <div class="terminal" aria-label="terminal demo">
         <div class="terminal-bar">
           <span class="tdot"></span><span class="tdot"></span><span class="tdot"></span>
-          <span class="tname">~ — helix -p "what can you do?"</span>
+          <span class="tname">~ — helix -p "who are you?"</span>
         </div>
         <div class="terminal-body">
-<span class="p">$</span> helix -p "what can you do?"
+<span class="p">$</span> helix -p "who are you?"
 
 <span class="ok">Helix:</span> I'm Helix, a minimal coding agent.
-I can read/write files, run commands, search the
-web, and help with software tasks.
+I'm here to help you with software tasks —
+tool calls, multi-turn memory, and retries
+are all handled by the core loop.
 
 <span class="c">// that reply came from the LLM — but helix's agent loop</span>
 <span class="c">// handles tool calls, multi-turn memory, and retry</span>
@@ -87,92 +89,11 @@ web, and help with software tasks.
     </div>
   </header>
 
-  <!-- ECOSYSTEM -->
-  <section class="block" id="ecosystem">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="num">01</span>
-        <h2>One core. Many surfaces.</h2>
-      </div>
-      <div class="cards">
-        <div class="card">
-          <span class="tag">core</span>
-          <h3>helix-core</h3>
-          <p>
-            The single source of truth: agent runtime, tool registry, plugin
-            system and config schema. CLI, TUI, web UI and Desktop all import
-            from here — fix once, benefit everywhere.
-          </p>
-          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/core" class="card-link">source ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">engine</span>
-          <h3>helix-agent</h3>
-          <p>
-            ~300 LOC. Agent loop, tool dispatch, multi-turn memory. Install with
-            <code>npm i helix-agent</code> or read the source in one sitting.
-          </p>
-          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/agent" class="card-link">source ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">cli</span>
-          <h3>helix-agent-cli</h3>
-          <p>
-            Coding agent in your terminal. Native binary, <code>curl | sh</code>
-            install, <code>helix config</code>, self-update. Granular
-            <code>--web-search</code> / <code>--web-extract</code> flags.
-          </p>
-          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli" class="card-link">install ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">eval</span>
-          <h3>helix-agent-eval</h3>
-          <p>
-            Quality / cost / latency regression detection. Run batches of agent
-            runs and catch regressions before shipping.
-          </p>
-          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/eval" class="card-link">source ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">tui</span>
-          <h3>helix-tui</h3>
-          <p>
-            Terminal UI (Ink) over the same core — chat history, streaming
-            output, live tool-call indicator. Same <code>buildAgent</code>,
-            different rendering.
-          </p>
-          <a href="/helix/architecture/" class="card-link">docs ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">integration</span>
-          <h3>helix-mcp</h3>
-          <p>
-            MCP client plugin. Connect any MCP server (stdio / http / sse) and
-            its tools show up as local tools — filesystem, databases, GitHub,
-            Context7 docs, you name it. Verified against real servers.
-          </p>
-          <a href="/helix/mcp/" class="card-link">docs ↗</a>
-        </div>
-        <div class="card">
-          <span class="tag">skills</span>
-          <h3>Skills</h3>
-          <p>
-            Load specialized instructions on demand from <code>SKILL.md</code>
-            folders. Compatible with OpenCode / Claude Code and the
-            <a href="https://skills.sh" class="card-link">skills.sh</a>
-            ecosystem — install any published skill with zero changes.
-          </p>
-          <a href="/helix/skills/" class="card-link">docs ↗</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- WHY -->
   <section class="block" id="why">
     <div class="wrap">
       <div class="section-head">
-        <span class="num">02</span>
+        <span class="num">01</span>
         <h2>The frameworks got heavy. This doesn't.</h2>
       </div>
       <div class="cards">
@@ -205,11 +126,128 @@ web, and help with software tasks.
     </div>
   </section>
 
+  <!-- ECOSYSTEM -->
+  <section class="block" id="ecosystem">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">02</span>
+        <h2>One core. Many surfaces.</h2>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">core</span>
+          <h3>helix-core</h3>
+          <p>
+            The single source of truth: agent runtime, tool registry, plugin
+            system and config schema. CLI, TUI, web UI and Desktop all import
+            from here — fix once, benefit everywhere.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/core" class="card-link" rel="noopener noreferrer">source ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">engine</span>
+          <h3>helix-agent</h3>
+          <p>
+            ~300 LOC. Agent loop, tool dispatch, multi-turn memory. Install with
+            <code>npm i helix-agent</code> or read the source in one sitting.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/agent" class="card-link" rel="noopener noreferrer">source ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">cli</span>
+          <h3>helix-agent-cli</h3>
+          <p>
+            Coding agent in your terminal. Native binary, <code>curl | sh</code>
+            install, <code>helix config</code>, self-update. Granular
+            <code>--web-search</code> / <code>--web-extract</code> flags.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/cli" class="card-link" rel="noopener noreferrer">install ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">eval</span>
+          <h3>helix-agent-eval</h3>
+          <p>
+            Quality / cost / latency regression detection. Run batches of agent
+            runs and catch regressions before shipping.
+          </p>
+          <a href="https://github.com/gabriel-belmonte/helix/tree/main/packages/eval" class="card-link" rel="noopener noreferrer">source ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">tui</span>
+          <h3>helix-tui</h3>
+          <p>
+            Terminal UI (Ink) over the same core — chat history, streaming
+            output, live tool-call indicator. Same <code>buildAgent</code>,
+            different rendering.
+          </p>
+          <a href="/helix/architecture/" class="card-link">docs ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">integration</span>
+          <h3>helix-mcp</h3>
+          <p>
+            MCP client plugin. Connect any MCP server (stdio / http / sse) and
+            its tools show up as local tools — filesystem, databases, GitHub,
+            Context7 docs, you name it. Verified against real servers.
+          </p>
+          <a href="/helix/mcp/" class="card-link">docs ↗</a>
+        </div>
+        <div class="card">
+          <span class="tag">skills</span>
+          <h3>Skills</h3>
+          <p>
+            Load specialized instructions on demand from <code>SKILL.md</code>
+            folders. Compatible with OpenCode / Claude Code and the
+            <a href="https://skills.sh" class="card-link" rel="noopener noreferrer">skills.sh</a>
+            ecosystem — install any published skill with zero changes.
+          </p>
+          <a href="/helix/skills/" class="card-link">docs ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICKSTART -->
+  <section class="block" id="quickstart">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="num">03</span>
+        <h2>Up and running in 30 seconds.</h2>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">install</span>
+          <h3>1. Install the CLI</h3>
+          <p>
+            One binary, no npm required:
+          </p>
+          <div class="code-inline"><code>curl -fsSL https://get.helix.dev | sh</code></div>
+        </div>
+        <div class="card">
+          <span class="tag">configure</span>
+          <h3>2. Set your API key</h3>
+          <p>
+            Point helix at any provider:
+          </p>
+          <div class="code-inline"><code>export OPENAI_API_KEY=sk-...</code></div>
+        </div>
+        <div class="card">
+          <span class="tag">run</span>
+          <h3>3. Start coding</h3>
+          <p>
+            Launch an interactive session or fire off a one-shot query:
+          </p>
+          <div class="code-inline"><code>helix -p "explain this codebase"</code></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- CODE -->
   <section class="block" id="code">
     <div class="wrap">
       <div class="section-head">
-        <span class="num">03</span>
+        <span class="num">04</span>
         <h2>From zero to a tool-calling agent.</h2>
       </div>
       <div class="code" set:html={codeSnippet}></div>
@@ -223,7 +261,7 @@ web, and help with software tasks.
   <section class="block" id="features">
     <div class="wrap">
       <div class="section-head">
-        <span class="num">04</span>
+        <span class="num">05</span>
         <h2>What's in the box.</h2>
       </div>
       <div class="cards">
@@ -237,7 +275,7 @@ web, and help with software tasks.
         </div>
         <div class="card">
           <span class="tag">core</span>
-          <h3>7 format parsers</h3>
+          <h3>Multi-format parsers</h3>
           <p>
             Parses tool calls from GPT, Claude, Qwen, Llama, and everything
             in between. <code>@@TOOL@@</code>, JSON blocks, Anthropic-style,
@@ -332,10 +370,10 @@ web, and help with software tasks.
         </div>
       </div>
       <div class="hero-cta" style="margin-top:32px">
-        <a class="btn accent" href="https://github.com/sponsors/gabriel-belmonte">
+        <a class="btn accent" href="https://github.com/sponsors/gabriel-belmonte" rel="noopener noreferrer">
           → sponsor on github
         </a>
-        <a class="btn ghost" style="border-color:#3a3a30;color:#e8e6dc" href="https://ko-fi.com/gabrielbelmonte">
+        <a class="btn ghost" style="border-color:#3a3a30;color:#e8e6dc" href="https://ko-fi.com/gabrielbelmonte" rel="noopener noreferrer">
           ko-fi
         </a>
       </div>

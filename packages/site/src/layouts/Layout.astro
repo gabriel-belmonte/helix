@@ -10,6 +10,8 @@ const {
   title,
   description = "Minimal TypeScript SDK to orchestrate AI agents and tools.",
 } = Astro.props;
+
+const canonicalURL = new URL(Astro.url.pathname, Astro.site ?? "https://gabriel-belmonte.github.io");
 ---
 
 <!doctype html>
@@ -18,7 +20,21 @@ const {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
-    <link rel="icon" href="/helix/favicon.svg" />
+    <link rel="icon" href="/favicon.svg" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL.href} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${canonicalURL.origin}/og-image.png`} />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`${canonicalURL.origin}/og-image.png`} />
+
     <title>{title}</title>
   </head>
   <body>

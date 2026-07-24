@@ -95,17 +95,17 @@ docker run --rm -it -v "$PWD:/workspace" ghcr.io/gabriel-belmonte/helix/helix-sa
 
 ## Packages
 
-| Package | What it is | Status |
-|---------|-----------|--------|
-| [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | 📦 **npm** |
-| [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | 🔒 internal |
-| [`helix-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | 🏗️ Bun binary |
-| [`helix-tui`](packages/tui) | Ink terminal UI | 🏗️ bundled in CLI |
-| [`helix-web`](packages/web) | Dashboard server (Hono) | 🏗️ bundled in CLI |
-| [`helix-mcp`](packages/mcp) | MCP client plugin | 🔒 internal |
-| [`helix-eval`](packages/eval) | A/B eval + LLM judge | 🔒 internal |
-| [`helix-memory`](packages/memory) | Modular memory (JSONL) | 🔒 internal |
-| [`helix-site`](packages/site) | Docs + landing (Astro) | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
+| Package | What it is | Docs | Status |
+|---------|-----------|------|--------|
+| [`helix-agent`](packages/agent) | Agent engine — loop, tool dispatch, providers | [README](packages/agent/README.md) | 📦 **npm** |
+| [`helix-core`](packages/core) | Tool registry, plugin system, web module, auth, skills | [README](packages/core/README.md) | 🔒 internal |
+| [`helix-cli`](packages/cli) | Unified binary (CLI + TUI + Dashboard) | [README](packages/cli/README.md) | 🏗️ Bun binary |
+| [`helix-tui`](packages/tui) | Ink terminal UI | [README](packages/tui/README.md) | 🏗️ bundled in CLI |
+| [`helix-web`](packages/web) | Dashboard server (Hono) | [README](packages/web/README.md) | 🏗️ bundled in CLI |
+| [`helix-mcp`](packages/mcp) | MCP client plugin | [README](packages/mcp/README.md) | 🔒 internal |
+| [`helix-eval`](packages/eval) | A/B eval + LLM judge | [README](packages/eval/README.md) | 🔒 internal |
+| [`helix-memory`](packages/memory) | Modular memory (JSONL) | [README](packages/memory/README.md) | 🔒 internal |
+| [`helix-site`](packages/site) | Docs + landing (Astro) | — | 🌐 [live](https://gabriel-belmonte.github.io/helix/) |
 
 ## CLI commands
 
@@ -186,6 +186,25 @@ Compare models quality / cost / latency:
 ```bash
 helix eval --suite test.json --compare mimo-v2.5-free
 helix eval --suite test.json --judge deepseek-v4-flash-free
+```
+
+## SDK Examples
+
+Runnable examples in [`packages/agent/examples/`](packages/agent/examples/):
+
+| Example | What it demonstrates |
+|---------|---------------------|
+| [`hello-agent.ts`](packages/agent/examples/hello-agent.ts) | Basic agent with tool calls (scripted LLM, no API key) |
+| [`live-openrouter.ts`](packages/agent/examples/live-openrouter.ts) | Real LLM via OpenRouter (free model) |
+| [`multi-agent.ts`](packages/agent/examples/multi-agent.ts) | Multi-agent workflow: researcher → summarizer |
+| [`streaming.ts`](packages/agent/examples/streaming.ts) | Streaming responses with onChunk callback |
+| [`custom-provider.ts`](packages/agent/examples/custom-provider.ts) | Build your own LLMProvider from scratch |
+| [`error-handling.ts`](packages/agent/examples/error-handling.ts) | Graceful degradation, retries, timeout patterns |
+| [`tool-chaining.ts`](packages/agent/examples/tool-chaining.ts) | Multiple tools executed in sequence within one run |
+
+```bash
+cd packages/agent
+bun run examples/hello-agent.ts
 ```
 
 ## Architecture
